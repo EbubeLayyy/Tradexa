@@ -195,7 +195,7 @@ function isAuthenticated(req, res, next) {
     if (req.xhr || req.headers.accept.indexOf('json') > -1) {
         return res.status(401).json({ success: false, message: 'Unauthorized. Please log in to access this resource.' });
     }
-    res.redirect('/login?error=Please log in to access this page.');
+    res.redirect(`${app.locals.baseUrl}/login?error=Please log in to access this page.`); // Updated redirect
 }
 
 function isAdmin(req, res, next) {
@@ -425,7 +425,7 @@ app.post('/login', (req, res, next) => {
         }
         if (!user) {
             req.session.messages = [info.message];
-            return res.redirect('/login');
+            return res.redirect(`${app.locals.baseUrl}/login`); // Updated redirect
         }
         req.logIn(user, (err) => {
             if (err) {
@@ -440,7 +440,7 @@ app.post('/login', (req, res, next) => {
                 console.log('User session set to default 24 hours');
             }
             console.log('User logged in successfully:', user.email);
-            return res.redirect('/dashboard');
+            return res.redirect(`${app.locals.baseUrl}/dashboard`); // Updated redirect
         });
     })(req, res, next);
 });
@@ -520,7 +520,7 @@ app.post('/signup', async (req, res) => {
         await transporter.sendMail(mailOptions);
         console.log('Verification email sent to:', newUser.email);
 
-        return res.redirect('/login?success=Registration successful! Please check your email to verify your account before logging in.');
+        return res.redirect(`${app.locals.baseUrl}/login?success=Registration successful! Please check your email to verify your account before logging in.`); // Updated redirect
 
     } catch (error) {
         console.error('Error during user registration:', error);
@@ -546,7 +546,7 @@ app.get('/verify-email/:token', async (req, res) => {
         });
 
         if (!user) {
-            return res.redirect('/login?error=Email verification link is invalid or has expired. Please try registering again.');
+            return res.redirect(`${app.locals.baseUrl}/login?error=Email verification link is invalid or has expired. Please try registering again.`); // Updated redirect
         }
 
         user.isVerified = true;
@@ -555,11 +555,11 @@ app.get('/verify-email/:token', async (req, res) => {
         await user.save();
 
         console.log('User email verified successfully:', user.email);
-        return res.redirect('/login?success=Your email has been successfully verified! You can now log in.');
+        return res.redirect(`${app.locals.baseUrl}/login?success=Your email has been successfully verified! You can now log in.`); // Updated redirect
 
     } catch (error) {
         console.error('Error during email verification:', error);
-        return res.redirect('/login?error=An error occurred during email verification. Please try again.');
+        return res.redirect(`${app.locals.baseUrl}/login?error=An error occurred during email verification. Please try again.`); // Updated redirect
     }
 });
 
@@ -581,7 +581,7 @@ app.post('/forgot-password', async (req, res) => {
 
         if (!user) {
             console.log('Forgot password request for unregistered email:', email);
-            return res.redirect('/forgot-password?success=If that email address is registered, you will receive a password reset link.');
+            return res.redirect(`${app.locals.baseUrl}/forgot-password?success=If that email address is registered, you will receive a password reset link.`); // Updated redirect
         }
 
         const resetToken = crypto.randomBytes(32).toString('hex');
@@ -612,7 +612,7 @@ app.post('/forgot-password', async (req, res) => {
         await transporter.sendMail(mailOptions);
         console.log('Password reset email sent to:', user.email);
 
-        return res.redirect('/forgot-password?success=If that email address is registered, you will receive a password reset link.');
+        return res.redirect(`${app.locals.baseUrl}/forgot-password?success=If that email address is registered, you will receive a password reset link.`); // Updated redirect
 
     } catch (error) {
         console.error('Error during forgot password request:', error);
@@ -630,13 +630,13 @@ app.get('/reset-password/:token', async (req, res) => {
         });
 
         if (!user) {
-            return res.redirect('/login?error=Password reset link is invalid or has expired. Please request a new one.');
+            return res.redirect(`${app.locals.baseUrl}/login?error=Password reset link is invalid or has expired. Please request a new one.`); // Updated redirect
         }
 
         res.render('reset-password', { token, error: null, success: null });
     } catch (error) {
         console.error('Error rendering reset password page:', error);
-        return res.redirect('/login?error=An error occurred while trying to reset your password. Please try again.');
+        return res.redirect(`${app.locals.baseUrl}/login?error=An error occurred while trying to reset your password. Please try again.`); // Updated redirect
     }
 });
 
@@ -672,7 +672,7 @@ app.post('/reset-password/:token', async (req, res) => {
         await user.save();
 
         console.log('Password successfully reset for user:', user.email);
-        return res.redirect('/login?success=Your password has been successfully reset. You can now log in with your new password.');
+        return res.redirect(`${app.locals.baseUrl}/login?success=Your password has been successfully reset. You can now log in with your new password.`); // Updated redirect
 
     } catch (error) {
         console.error('Error during password reset:', error);
@@ -692,7 +692,7 @@ app.get('/logout', (req, res, next) => {
                 return next(err);
             }
             res.clearCookie('tradexa_session_id');
-            res.redirect('/login?success=You have been logged out.');
+            res.redirect(`${app.locals.baseUrl}/login?success=You have been logged out.`); // Updated redirect
         });
     });
 });
@@ -783,7 +783,7 @@ app.get('/my-plans', isAuthenticated, async (req, res) => {
 
     } catch (error) {
         console.error('Error fetching user plans:', error);
-        return res.redirect('/dashboard?error=Could not load your plans. Please try again.');
+        return res.redirect(`${app.locals.baseUrl}/dashboard?error=Could not load your plans. Please try again.`); // Updated redirect
     }
 });
 
@@ -792,17 +792,17 @@ app.post('/select-plan', isAuthenticated, async (req, res) => {
     const user = req.user;
 
     if (!planName || !investmentPlans[planName]) {
-        return res.redirect('/my-plans?error=Invalid plan selected.');
+        return res.redirect(`${app.locals.baseUrl}/my-plans?error=Invalid plan selected.`); // Updated redirect
     }
 
     if (user.currentPlan !== 'None' && user.currentPlan !== planName) {
-        return res.redirect('/my-plans?error=You already have an active plan. Consider topping up your existing plan.');
+        return res.redirect(`${app.locals.baseUrl}/my-plans?error=You already have an active plan. Consider topping up your existing plan.`); // Updated redirect
     }
 
     req.session.selectedDepositPlan = planName;
     console.log(`User ${user.email} selected plan: ${planName} for deposit.`);
 
-    res.redirect('/deposit?success=Plan selected! Now enter your deposit amount.');
+    res.redirect(`${app.locals.baseUrl}/deposit?success=Plan selected! Now enter your deposit amount.`); // Updated redirect
 });
 
 app.get('/deposit', isAuthenticated, async (req, res) => {
@@ -828,7 +828,7 @@ app.get('/deposit', isAuthenticated, async (req, res) => {
             }
             console.log(`User ${user.email} is selecting a new plan: ${selectedPlanName}.`);
         } else {
-            return res.redirect('/my-plans?error=Please select an investment plan before making a deposit.');
+            return res.redirect(`${app.locals.baseUrl}/my-plans?error=Please select an investment plan before making a deposit.`); // Updated redirect
         }
 
         res.render('deposit', {
@@ -853,7 +853,7 @@ app.post('/deposit', isAuthenticated, async (req, res) => {
     const user = req.user;
 
     if (isNaN(depositAmount) || depositAmount <= 0) {
-        return res.redirect(`/deposit?error=Please enter a valid deposit amount.`);
+        return res.redirect(`${app.locals.baseUrl}/deposit?error=Please enter a valid deposit amount.`); // Updated redirect
     }
 
     let selectedPlanName = req.session.selectedDepositPlan;
@@ -865,31 +865,31 @@ app.post('/deposit', isAuthenticated, async (req, res) => {
         if (user.currentPlan === 'None' || user.currentPlan === selectedPlanName) {
             isNewActivation = true;
         } else {
-            return res.redirect(`/my-plans?error=You already have an active ${user.currentPlan} plan. Please wait for it to complete or contact support to change plans.`);
+            return res.redirect(`${app.locals.baseUrl}/my-plans?error=You already have an active ${user.currentPlan} plan. Please wait for it to complete or contact support to change plans.`); // Updated redirect
         }
     } else if (user.currentPlan !== 'None') {
         planToProcess = investmentPlans[user.currentPlan];
         selectedPlanName = user.currentPlan;
         isNewActivation = false;
     } else {
-        return res.redirect('/my-plans?error=No plan selected or invalid plan. Please choose a plan first.');
+        return res.redirect(`${app.locals.baseUrl}/my-plans?error=No plan selected or invalid plan. Please choose a plan first.`); // Updated redirect
     }
 
     if (!isNewActivation && planToProcess.maxDeposit !== Infinity && (user.initialInvestment + depositAmount > planToProcess.maxDeposit)) {
-        return res.redirect(`/deposit?error=Your total investment for the ${selectedPlanName} plan cannot exceed $${planToProcess.maxDeposit}. Please adjust your top-up amount.`);
+        return res.redirect(`${app.locals.baseUrl}/deposit?error=Your total investment for the ${selectedPlanName} plan cannot exceed $${planToProcess.maxDeposit}. Please adjust your top-up amount.`); // Updated redirect
     }
     if (isNewActivation && selectedPlanName !== 'Starter' && depositAmount < planToProcess.minDeposit) {
-        return res.redirect(`/deposit?error=Minimum deposit for ${selectedPlanName} Plan is $${planToProcess.minDeposit}.`);
+        return res.redirect(`${app.locals.baseUrl}/deposit?error=Minimum deposit for ${selectedPlanName} Plan is $${planToProcess.minDeposit}.`); // Updated redirect
     }
     if (isNewActivation && selectedPlanName === 'Starter') {
         if (depositAmount + user.pendingStarterDeposit > planToProcess.maxDeposit) {
-            return res.redirect(`/deposit?error=Your total Starter deposits cannot exceed $${planToProcess.maxDeposit}. Please adjust your amount.`);
+            return res.redirect(`${app.locals.baseUrl}/deposit?error=Your total Starter deposits cannot exceed $${planToProcess.maxDeposit}. Please adjust your amount.`); // Updated redirect
         }
     }
 
     const supportedCurrencies = Object.keys(cryptoWallets);
     if (!paymentCurrency || !supportedCurrencies.includes(paymentCurrency)) {
-        return res.redirect(`/deposit?error=Please select a valid payment currency.`);
+        return res.redirect(`${app.locals.baseUrl}/deposit?error=Please select a valid payment currency.`); // Updated redirect
     }
 
     try {
@@ -929,7 +929,7 @@ app.post('/deposit', isAuthenticated, async (req, res) => {
             default: currencyLabel = paymentCurrency;
         }
 
-        return res.redirect(`/payment-instructions?amount=${depositAmount}&currency=${currencyLabel}&address=${walletAddressToDisplay}&plan=${selectedPlanName}`);
+        return res.redirect(`${app.locals.baseUrl}/payment-instructions?amount=${depositAmount}&currency=${currencyLabel}&address=${walletAddressToDisplay}&plan=${selectedPlanName}`); // Updated redirect
 
     } catch (error) {
         console.error('Error during deposit/top-up:', error);
@@ -937,14 +937,14 @@ app.post('/deposit', isAuthenticated, async (req, res) => {
         if (selectedPlanName) {
             redirectError += `&selectedPlan=${selectedPlanName}`;
         }
-        return res.redirect(`/deposit?error=${redirectError}`);
+        return res.redirect(`${app.locals.baseUrl}/deposit?error=${redirectError}`); // Updated redirect
     }
 });
 
 app.get('/payment-instructions', isAuthenticated, (req, res) => {
     const { amount, currency, address, plan } = req.query;
     if (!amount || !currency || !address || !plan) {
-        return res.redirect('/dashboard?error=Missing payment details.');
+        return res.redirect(`${app.locals.baseUrl}/dashboard?error=Missing payment details.`); // Updated redirect
     }
     res.render('paymentinstructions', {
         amount,
@@ -969,7 +969,7 @@ app.get('/transactions', isAuthenticated, async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching user transactions:', error);
-        res.redirect('/dashboard?error=Could not load transaction history. Please try again.');
+        res.redirect(`${app.locals.baseUrl}/dashboard?error=Could not load transaction history. Please try again.`); // Updated redirect
     }
 });
 
@@ -1151,7 +1151,7 @@ app.get('/withdraw', isAuthenticated, async (req, res) => {
         });
     } catch (error) {
         console.error('Error rendering withdraw page:', error);
-        res.redirect('/dashboard?error=Could not load withdraw page. Please try again.');
+        res.redirect(`${app.locals.baseUrl}/dashboard?error=Could not load withdraw page. Please try again.`); // Updated redirect
     }
 });
 
@@ -1256,7 +1256,7 @@ app.post('/admin/login', (req, res, next) => {
 
     if (!email || !password) {
         req.session.messages = ['Please enter both email and password.'];
-        return res.redirect('/admin/login');
+        return res.redirect(`${app.locals.baseUrl}/admin/login`); // Updated redirect
     }
 
     const adminEmail = process.env.ADMIN_EMAIL;
@@ -1264,25 +1264,25 @@ app.post('/admin/login', (req, res, next) => {
 
     if (email !== adminEmail) {
         req.session.messages = ['Invalid admin credentials.'];
-        return res.redirect('/admin/login');
+        return res.redirect(`${app.locals.baseUrl}/admin/login`); // Updated redirect
     }
 
     bcrypt.compare(password, adminPasswordHash)
         .then(isMatch => {
             if (!isMatch) {
                 req.session.messages = ['Invalid admin credentials.'];
-                return res.redirect('/admin/login');
+                return res.redirect(`${app.locals.baseUrl}/admin/login`); // Updated redirect
             }
 
             req.session.isAdmin = true;
             req.session.isLoggedIn = true;
             console.log('Admin logged in successfully:', email);
-            return res.redirect('/admin/dashboard');
+            return res.redirect(`${app.locals.baseUrl}/admin/dashboard`); // Updated redirect
         })
         .catch(err => {
             console.error('Error during admin login bcrypt compare:', err);
             req.session.messages = ['An error occurred during login.'];
-            return res.redirect('/admin/login');
+            return res.redirect(`${app.locals.baseUrl}/admin/login`); // Updated redirect
         });
 });
 
@@ -1313,18 +1313,18 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
     const { transactionId, action } = req.body;
 
     if (!transactionId || !action || !['confirm', 'reject'].includes(action)) {
-        return res.redirect('/admin/dashboard?error=Invalid transaction ID or action.');
+        return res.redirect(`${app.locals.baseUrl}/admin/dashboard?error=Invalid transaction ID or action.`); // Updated redirect
     }
 
     try {
         const transaction = await Transaction.findById(transactionId);
 
         if (!transaction) {
-            return res.redirect('/admin/dashboard?error=Transaction not found.');
+            return res.redirect(`${app.locals.baseUrl}/admin/dashboard?error=Transaction not found.`); // Updated redirect
         }
 
         if (transaction.status !== 'Pending') {
-            return res.redirect(`/admin/dashboard?error=Transaction is already ${transaction.status}.`);
+            return res.redirect(`${app.locals.baseUrl}/admin/dashboard?error=Transaction is already ${transaction.status}.`); // Updated redirect
         }
 
         if (action === 'confirm') {
@@ -1431,7 +1431,7 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
                 console.warn(`User not found for transaction ${transaction._id}. Balance not updated and email not sent.`);
             }
             await transaction.save();
-            return res.redirect('/admin/dashboard?success=Transaction confirmed successfully!');
+            return res.redirect(`${app.locals.baseUrl}/admin/dashboard?success=Transaction confirmed successfully!`); // Updated redirect
 
         } else if (action === 'reject') {
             transaction.status = 'Rejected';
@@ -1455,12 +1455,12 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
                 }
             }
             console.log(`Transaction ${transaction._id} rejected.`);
-            return res.redirect('/admin/dashboard?success=Transaction rejected.');
+            return res.redirect(`${app.locals.baseUrl}/admin/dashboard?success=Transaction rejected.`); // Updated redirect
         }
 
     } catch (error) {
         console.error('Error processing admin transaction action:', error);
-        return res.redirect('/admin/dashboard?error=An error occurred while processing the transaction.');
+        return res.redirect(`${app.locals.baseUrl}/admin/dashboard?error=An error occurred while processing the transaction.`); // Updated redirect
     }
 });
 
@@ -1501,10 +1501,10 @@ app.get('/admin/logout', (req, res) => {
     req.session.destroy(err => {
         if (err) {
             console.error('Error destroying admin session:', err);
-            return res.redirect('/admin/login?error=Error logging out.');
+            return res.redirect(`${app.locals.baseUrl}/admin/login?error=Error logging out.`); // Updated redirect
         }
         res.clearCookie('tradexa_session_id');
-        res.redirect('/admin/login?success=You have been logged out from admin panel.');
+        res.redirect(`${app.locals.baseUrl}/admin/login?success=You have been logged out from admin panel.`); // Updated redirect
     });
 });
 
@@ -1513,6 +1513,11 @@ const PORT = process.env.PORT || 2100;
 // UPDATED startServer function
 async function startServer() {
     try {
+        // Determine the public URL based on environment variables
+        // RAILWAY_STATIC_URL is provided by Railway for the service's public domain
+        // RENDER_EXTERNAL_URL is provided by Render (if you ever use it)
+        // BASE_URL can be manually set for custom domains or specific environments
+        // Fallback to localhost for local development
         const publicUrl = process.env.RAILWAY_STATIC_URL || process.env.RENDER_EXTERNAL_URL || process.env.BASE_URL || `http://localhost:${PORT}`;
 
         app.locals.baseUrl = publicUrl; // Set app.locals.baseUrl here
