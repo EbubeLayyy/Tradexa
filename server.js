@@ -83,16 +83,36 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// UPDATED CORS Configuration
 app.use(cors({
     origin: function (origin, callback) {
+        // Define explicitly allowed origins (your local dev and known production URLs)
+        const allowedOrigins = [
+            'http://localhost:2100', // Your local dev URL
+            'http://localhost:8080',  // Common local dev port if you're using a proxy or different setup
+            'https://tradexa-production.up.railway.app' // Your actual Railway production URL
+        ];
+
+        // Add dynamic environment URLs if they exist (Railway, Render, or custom BASE_URL)
+        if (process.env.RAILWAY_STATIC_URL) {
+            allowedOrigins.push(process.env.RAILWAY_STATIC_URL);
+        }
+        if (process.env.RENDER_EXTERNAL_URL) {
+            allowedOrigins.push(process.env.RENDER_EXTERNAL_URL);
+        }
+        if (process.env.BASE_URL) {
+            allowedOrigins.push(process.env.BASE_URL); // For custom domains or specific dev setups
+        }
+
+        // Allow requests with no origin (like mobile apps, Postman, or curl requests)
+        // This is often needed for non-browser clients or direct API calls.
         if (!origin) return callback(null, true);
 
-        const allowedOrigin = app.locals.baseUrl;
-
-        if (origin === allowedOrigin || origin.startsWith(`http://localhost:${process.env.PORT || 2100}`)) {
+        // Check if the requesting origin is in our allowed list
+        if (allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            console.warn(`CORS: Blocking request from unauthorized origin: ${origin}. Expected: ${allowedOrigin}`);
+            console.warn(`CORS: Blocking request from unauthorized origin: ${origin}. Expected one of: ${allowedOrigins.join(', ')}`);
             callback(new Error('Not allowed by CORS'), false);
         }
     },
@@ -119,9 +139,10 @@ app.use(passport.session());
 app.use((req, res, next) => {
     res.locals.user = req.user || null;
     res.locals.query = req.query;
+    // Ensure app.locals.baseUrl is correctly passed to views
     res.locals.app = {
         locals: {
-            baseUrl: app.locals.baseUrl
+            baseUrl: app.locals.baseUrl // This will be set in startServer
         }
     };
     next();
@@ -477,7 +498,8 @@ app.post('/signup', async (req, res) => {
 
         await newUser.save();
 
-        const verificationUrl = `${res.locals.app.locals.baseUrl}/verify-email/${verificationToken}`;
+        // Use the app.locals.baseUrl for verification URL
+        const verificationUrl = `${app.locals.baseUrl}/verify-email/${verificationToken}`;
         console.log(`--- VERIFICATION EMAIL URL BEING SENT: ${verificationUrl} ---`);
 
         const mailOptions = {
@@ -569,7 +591,8 @@ app.post('/forgot-password', async (req, res) => {
         user.resetPasswordExpires = resetTokenExpires;
         await user.save();
 
-        const resetUrl = `${res.locals.app.locals.baseUrl}/reset-password/${resetToken}`;
+        // Use the app.locals.baseUrl for reset URL
+        const resetUrl = `${app.locals.baseUrl}/reset-password/${resetToken}`;
 
         const mailOptions = {
             from: `"Tradexa" <${supportEmail}>`,
@@ -1341,7 +1364,7 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
                             user.dailyROI = investmentPlans.Starter.dailyROI;
                             user.planStartDate = new Date();
                             user.planEndDate = new Date(user.planStartDate);
-                            user.planEndDate.setDate(user.planEndDate.getDate() + investmentPlans.Starter.durationDays);
+                            user.planEndDate.setDate(user.planEndDate.getDate() + investmentPlans[transaction.planName].durationDays);
                             user.investments.push({ date: new Date(), value: user.balance });
                             user.pendingStarterDeposit = 0;
                             const yesterday = new Date();
@@ -1390,7 +1413,7 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
                         <p>Your transaction of <strong>$${transaction.amount.toFixed(2)} ${transaction.currency}</strong> (${transaction.type}) has been successfully confirmed by our team.</p>
                         <p>Your account balance has been updated to <strong>$${user.balance.toFixed(2)}</strong>.</p>
                         <p>You can view your updated balance and transaction history by logging into your dashboard:</p>
-                        <p><a href="${res.locals.app.locals.baseUrl}/dashboard">Go to Your Dashboard</a></p>
+                        <p><a href="${app.locals.baseUrl}/dashboard">Go to Your Dashboard</a></p>
                         <p>Thank you for choosing Tradexa!</p>
                         <p>Best regards,<br>The Tradexa Team</p>
                         <p><a href="mailto:${supportEmail}">${supportEmail}</a></p>
@@ -1487,14 +1510,12 @@ app.get('/admin/logout', (req, res) => {
 
 const PORT = process.env.PORT || 2100;
 
+// UPDATED startServer function
 async function startServer() {
     try {
-        // In a hosted environment, the hosting platform will provide the public URL.
-        // Render uses RENDER_EXTERNAL_URL, Railway uses RAILWAY_STATIC_URL, etc.
-        // You should set BASE_URL in your hosting environment variables if your platform doesn't provide a standard one.
-        const publicUrl = process.env.BASE_URL || process.env.RENDER_EXTERNAL_URL || process.env.RAILWAY_STATIC_URL || `http://localhost:${PORT}`;
+        const publicUrl = process.env.RAILWAY_STATIC_URL || process.env.RENDER_EXTERNAL_URL || process.env.BASE_URL || `http://localhost:${PORT}`;
 
-        app.locals.baseUrl = publicUrl;
+        app.locals.baseUrl = publicUrl; // Set app.locals.baseUrl here
         console.log(`App Base URL set to: ${app.locals.baseUrl}`);
 
         server.listen(PORT, () => {
@@ -1503,6 +1524,7 @@ async function startServer() {
         });
     } catch (error) {
         console.error('Failed to start server:', error);
+        // Fallback to plain http for local if startServer fails due to external URL issues
         app.listen(PORT, () => {
             console.log(`Express server listening on port ${PORT} (server.listen failed)`);
             console.log(`Access Tradexa at http://localhost:${PORT}`);
