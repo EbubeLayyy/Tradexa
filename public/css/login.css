@@ -1,0 +1,223 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Poppins", sans-serif;
+  background-color: #f6f5f3;
+}
+
+.top-section {
+  background-color: #03598c; /* This background will now apply to the logo area */
+  color: #f6f5f3;
+  text-align: center;
+  padding: 40px 20px 20px; /* Adjust padding for the logo */
+  /* margin-top: 20px; REMOVED as logo is now directly in top-section */
+}
+
+/* NEW: Styles for the Tradexa logo (now inside .top-section) */
+.tradexa-logo {
+  font-family: 'Poppins', sans-serif;
+  font-size: 36px; /* Adjust as needed */
+  font-weight: 700; /* Bold */
+  color: #f6f5f3; /* White color for contrast against blue background */
+  text-decoration: none;
+  display: inline-block;
+  transition: color 0.3s ease;
+}
+
+.tradexa-logo:hover {
+  color: #c0c0c0; /* Slightly lighter on hover */
+}
+
+/* REMOVED: Old styles for h1 and p that were in top-section */
+/* .top-section h1 {
+  font-size: 36px;
+  margin-bottom: 20px;
+}
+
+.top-section p {
+  font-size: 18px;
+  margin-bottom: 30px;
+} */
+
+.login-form-section {
+  background-color: #f6f5f3;
+  padding: 40px 20px;
+  /* max-width: 500px; -- Reverted to user's original, then adjusted form directly */
+  margin: 0 auto;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  margin-top: -30px; /* Keep this to overlap with the top-section */
+  font-family: "Poppins", sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: auto; /* Reset min-height as content is now inside */
+  box-sizing: border-box;
+  position: relative; /* Needed for z-index if you add more overlapping elements */
+  z-index: 1; /* Ensure it stays above other elements if any */
+}
+
+/* NEW: Styles for the moved heading and paragraph */
+.login-form-section .form-title {
+  font-size: 28px; /* Slightly smaller than original top-section h1 */
+  color: #03598c;
+  margin-bottom: 10px;
+  font-weight: 600;
+  text-align: center;
+  width: 100%; /* Ensure it takes full width within the form section */
+}
+
+.login-form-section .form-description {
+  font-size: 16px; /* Slightly smaller than original top-section p */
+  color: #555;
+  margin-bottom: 30px;
+  text-align: center;
+  width: 100%;
+}
+
+.login-form {
+    width: 100%;
+    max-width: 350px; /* Adjusted: Smaller and more centralized */
+    padding: 30px; /* Adjusted: Slightly reduced padding for a smaller look */
+    box-sizing: border-box; /* Ensure padding is included in width */
+}
+
+
+.login-form .form-group {
+  margin-bottom: 20px;
+  position: relative; /* Make sure this is relative for absolute positioning of icons */
+  font-family: "Poppins", sans-serif;
+}
+
+.login-form i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #03598c; /* This is your existing icon color */
+}
+
+.login-form input {
+  width: 100%;
+  padding: 10px 12px 10px 40px; /* Adjusted: Smaller vertical padding, left padding for icon */
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 16px;
+  font-family: "Poppins", sans-serif;
+  box-sizing: border-box;
+}
+
+/* Specific styles for the password toggle icon */
+.password-group .password-toggle-icon {
+  right: 12px; /* Position on the right side of the input */
+  left: auto; /* Override the default 'left' from .login-form i */
+  cursor: pointer;
+  /* NO COLOR CHANGE HERE - it will inherit from .login-form i */
+}
+
+/* Adjust padding for the password input to make space for the eye icon */
+.password-group input {
+    padding-right: 40px; /* Make space for the eye icon on the right */
+}
+
+
+.form-check {
+  margin: 10px 0 20px;
+  font-size: 14px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.form-check label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.form-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+}
+
+.login-btn {
+  width: 100%;
+  background-color: #03598c;
+  color: #f6f5f3;
+  padding: 12px; /* Adjusted: Smaller padding for the button */
+  font-size: 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  font-family: "Poppins", sans-serif;
+}
+
+.form-bottom-links {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+.form-bottom-links a {
+  text-decoration: none;
+  font-weight: 500;
+  color: #03598c;
+}
+
+.form-bottom-links p {
+  color: #03598c;
+}
+
+.form-bottom-links a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive adjustments for logo and layout */
+@media (max-width: 768px) {
+    .tradexa-logo {
+        font-size: 30px;
+    }
+    .top-section {
+        padding: 30px 20px 15px; /* Adjust padding for smaller screens */
+    }
+    .login-form-section {
+        padding: 30px 15px; /* Adjust padding for smaller screens */
+        margin-top: -20px; /* Smaller overlap */
+    }
+    .login-form-section .form-title {
+        font-size: 24px;
+        /* margin-top: -10px; */
+    }
+    .login-form-section .form-description {
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+    .form-group input {
+        padding: 10px 10px 10px 40px; /* Adjusted: Smaller padding for inputs on mobile */
+        font-size: 15px;
+    }
+    .form-group i {
+        left: 10px; /* Adjusted: Icon slightly more to the left on mobile */
+        font-size: 16px;
+    }
+    .password-group .password-toggle-icon {
+        right: 10px; /* Adjusted: Eye icon slightly more to the right on mobile */
+        font-size: 16px;
+    }
+    .login-btn {
+        padding: 10px; /* Adjusted: Smaller padding for the button on mobile */
+        font-size: 16px;
+    }
+    .login-form {
+        max-width: 370px; /* Adjusted: Even smaller on very small screens */
+        padding: 20px;
+    }
+}

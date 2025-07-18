@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Login - Tradexa</title>
+    <link rel="stylesheet" href="/css/login.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <section class="top-section">
+      <h1>Admin Login</h1>
+      <p>Access the Tradexa administration panel.</p>
+    </section>
+
+    <section class="login-form-section">
+      <form class="login-form" action="/admin/login" method="POST">
+        <!-- Display error message if passed from the server -->
+        <% if (error) { %>
+          <p style="color: red; text-align: center; margin-bottom: 15px;"><%= error %></p>
+        <% } %>
+        <!-- No success message for admin login, but keeping the block for consistency if needed -->
+        <% if (success) { %>
+          <p style="color: green; text-align: center; margin-bottom: 15px;"><%= success %></p>
+        <% } %>
+
+        <div class="form-group">
+          <i class="fas fa-envelope"></i>
+          <input type="email" placeholder="Admin Email Address" name="email" required />
+        </div>
+
+        <div class="form-group">
+          <i class="fas fa-lock"></i>
+          <input type="password" placeholder="Admin Password" name="password" required />
+        </div>
+
+        <!-- Removed "Remember me" checkbox as it's not typically needed for admin login -->
+        <!-- Removed "Forgot Password?" and "Sign Up" links -->
+
+        <button type="submit" class="login-btn">Admin Login</button>
+      </form>
+    </section>
+  </body>
+</html>

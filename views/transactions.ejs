@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction History - Tradexa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/dashboard.css"> <!-- This is the CSS file we'll modify -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/boxicons/2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h2 class="logo" id="sidebarLogo">
+                <span class="logo-text">Tradexa</span>
+                <i class="fas fa-bars logo-toggle-icon"></i>
+            </h2>
+            <nav>
+                <ul>
+                    <li class="<%= currentPage === 'dashboard' ? 'active' : '' %>" data-section="dashboard">
+              <a href="/dashboard"><i class="fas fa-home"></i> <span class="nav-text">Dashboard</span></a>
+            </li>
+            <li class="<%= currentPage === 'my-plans' ? 'active' : '' %>" data-section="my-plans">
+              <a href="/my-plans"><i class="fas fa-chart-line"></i> <span class="nav-text">My Plans</span></a>
+            </li>
+            <li class="<%= currentPage === 'deposit' ? 'active' : '' %>" data-section="deposit">
+              <a href="/deposit"><i class="fas fa-arrow-down"></i> <span class="nav-text">Deposit</span></a>
+            </li>
+            <li class="<%= currentPage === 'withdraw' ? 'active' : '' %>" data-section="withdraw">
+              <a href="/withdraw"><i class="fas fa-arrow-up"></i> <span class="nav-text">Withdraw</span></a>
+            </li>
+            <li class="<%= currentPage === 'transactions' ? 'active' : '' %>" data-section="transactions">
+              <a href="/transactions"><i class="fas fa-list"></i> <span class="nav-text">Transactions</span></a>
+            </li>
+            <li class="<%= currentPage === 'profile' ? 'active' : '' %>" data-section="profile">
+              <a href="#"><i class="fas fa-user"></i> <span class="nav-text">Profile</span></a>
+            </li>
+            <li>
+              <a href="/logout"><i class="fas fa-sign-out-alt"></i> <span class="nav-text">Logout</span></a>
+            </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="dashboard-header">
+                <h1>Transaction History</h1>
+            </header>
+
+            <% if (error) { %>
+                <div class="message error"><%= error %></div>
+            <% } %>
+            <% if (success) { %>
+                <div class="message success"><%= success %></div>
+            <% } %>
+
+            <section class="transactions-section">
+                <% if (transactions.length > 0) { %>
+                    <div class="transactions-table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Currency</th>
+                                    <th>Plan</th>
+                                    <th>Status</th>
+                                    <th>Confirmed On</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% transactions.forEach(transaction => { %>
+                                    <tr class="<%= transaction.status.toLowerCase() %>">
+                                        <td data-label="Date"><%= new Date(transaction.createdAt).toLocaleString() %></td>
+                                        <td data-label="Type"><%= transaction.type %></td>
+                                        <td data-label="Amount">$<%= transaction.amount.toFixed(2) %></td>
+                                        <td data-label="Currency"><%= transaction.currency %></td>
+                                        <td data-label="Plan"><%= transaction.planName || 'N/A' %></td>
+                                        <td data-label="Status">
+                                            <span class="status-badge status-<%= transaction.status.toLowerCase() %>">
+                                                <%= transaction.status %>
+                                            </span>
+                                        </td>
+                                        <td data-label="Confirmed On"><%= transaction.confirmedAt ? new Date(transaction.confirmedAt).toLocaleString() : 'N/A' %></td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <p class="no-transactions-message">You do not have any transactions yet.</p>
+                    <p>Make your first deposit by going to <a href="/my-plans">My Plans</a> and selecting a plan.</p>
+                <% } %>
+            </section>
+            <a href="/dashboard" class="btn-back">Back to Dashboard</a>
+        </main>
+    </div>
+
+    <!-- Common JavaScript for sidebar toggle -->
+    <script>
+        const sidebarLogo = document.getElementById('sidebarLogo');
+        const dashboardContainer = document.querySelector('.dashboard-container');
+
+        if (sidebarLogo && dashboardContainer) {
+            sidebarLogo.addEventListener('click', () => {
+                dashboardContainer.classList.toggle('collapsed');
+            });
+        } else {
+            console.error('Sidebar toggle elements not found. Check HTML IDs/classes.');
+        }
+
+        // Keep active state on page refresh based on current URL
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.sidebar nav ul li a');
+
+            navLinks.forEach(link => {
+                link.closest('li').classList.remove('active'); // Remove existing active classes
+
+                // Add active class if href matches current path
+                if (link.getAttribute('href') === currentPath) {
+                    link.closest('li').classList.add('active');
+                }
+            });
+        });
+    </script>
+         <!-- Smartsupp Live Chat script -->
+<!-- Smartsupp Live Chat script -->
+<script type="text/javascript">
+var _smartsupp = _smartsupp || {};
+_smartsupp.key = 'ba6a5df2d0615c8a2ce3a85521dc1af4083b028c';
+window.smartsupp||(function(d) {
+  var s,c,o=smartsupp=function(){ o._.push(arguments)};o._=[];
+  s=d.getElementsByTagName('script')[0];c=d.createElement('script');
+  c.type='text/javascript';c.charset='utf-8';c.async=true;
+  c.src='https://www.smartsuppchat.com/loader.js?';s.parentNode.insertBefore(c,s);
+})(document);
+</script>
+<noscript> Powered by <a href=“https://www.smartsupp.com” target=“_blank”>Smartsupp</a></noscript>
+</body>
+</html>

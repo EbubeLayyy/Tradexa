@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Tradexa - Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/dashboard.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/boxicons/2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <style>
+        /* All custom chatbot-related styles have been removed from here. */
+        /* If your original <style> block contained ONLY chat styles, you can remove it. */
+        /* If it had other dashboard styles, ensure those are kept or moved to dashboard.css. */
+    </style>
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <h2 class="logo" id="sidebarLogo">
+          <span class="logo-text">Tradexa</span>
+          <i class="fas fa-bars logo-toggle-icon"></i>
+        </h2>
+        <nav>
+          <ul>
+            <li class="<%= currentPage === 'dashboard' ? 'active' : '' %>" data-section="dashboard">
+              <a href="/dashboard"><i class="fas fa-home"></i> <span class="nav-text">Dashboard</span></a>
+            </li>
+            <li class="<%= currentPage === 'my-plans' ? 'active' : '' %>" data-section="my-plans">
+              <a href="/my-plans"><i class="fas fa-chart-line"></i> <span class="nav-text">My Plans</span></a>
+            </li>
+            <li class="<%= currentPage === 'deposit' ? 'active' : '' %>" data-section="deposit">
+              <a href="/deposit"><i class="fas fa-arrow-down"></i> <span class="nav-text">Deposit</span></a>
+            </li>
+            <li class="<%= currentPage === 'withdraw' ? 'active' : '' %>" data-section="withdraw">
+              <a href="/withdraw"><i class="fas fa-arrow-up"></i> <span class="nav-text">Withdraw</span></a>
+            </li>
+            <li class="<%= currentPage === 'transactions' ? 'active' : '' %>" data-section="transactions">
+              <a href="/transactions"><i class="fas fa-list"></i> <span class="nav-text">Transactions</span></a>
+            </li>
+            <li class="<%= currentPage === 'profile' ? 'active' : '' %>" data-section="profile">
+              <a href="/profile"><i class="fas fa-user"></i> <span class="nav-text">Profile</span></a>
+            </li>
+            <li>
+              <a href="/logout"><i class="fas fa-sign-out-alt"></i> <span class="nav-text">Logout</span></a>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <header class="dashboard-header">
+          <h1>Welcome back, <%= user.fullName %>!</h1>
+          <div class="user-info">
+            <!-- START: Profile Picture Upload Section (HTML form and input) -->
+            <!-- This form is hidden and used by JavaScript to send the file -->
+            <form id="profileUploadForm" enctype="multipart/form-data" style="display: none;">
+              <input
+                type="file"
+                id="profile-upload"
+                name="profilePicture"
+                accept="image/png, image/jpeg, image/gif"
+              />
+            </form>
+
+            <!-- UPDATED: Wrapped profile picture container in an anchor tag -->
+            <a href="/profile" class="profile-picture-link">
+                <label for="profile-upload" class="profile-picture-container" id="profilePictureContainer">
+                    <!-- The icon to show when no image is loaded or as a fallback -->
+                    <i class='bx bxs-user-circle profile-icon' id="profileIcon"></i>
+                    <!-- The image element for preview and displaying current profile picture -->
+                    <img
+                        id="profile-preview"
+                        src=""
+                        alt="User Avatar"
+                        class="profile-image"
+                        onerror="this.src=''; updateProfilePictureDisplay('');" />
+                </label>
+            </a>
+            <!-- END: Profile Picture Upload Section -->
+          </div>
+        </header>
+
+        <!-- Display messages from server redirects -->
+        <% if (query.error) { %>
+            <div class="message error"><%= query.error %></div>
+        <% } %>
+        <% if (query.success) { %>
+            <div class="message success"><%= query.success %></div>
+        <% } %>
+
+        <div id="status-message-container">
+            <!-- Messages from JS will be inserted here -->
+        </div>
+
+        <!-- Sections -->
+        <div class="section" id="dashboard-section">
+          <section class="stats-cards">
+            <div class="card">
+              <h3>Total Balance</h3>
+              <p id="totalBalance">$<%= user.balance.toFixed(2) %></p>
+            </div>
+            <div class="card">
+              <h3>Active Plan</h3>
+              <p id="activePlan"><%= user.currentPlan %></p>
+            </div>
+            <div class="card">
+              <h3>Withdrawable</h3>
+              <p id="withdrawableBalance">$0.00</p>
+            </div>
+          </section>
+
+          <% if (user.currentPlan !== 'None') { %>
+            <section class="action-buttons">
+                <a href="/deposit" class="btn-top-up">Top Up Current Plan</a>
+            </section>
+          <% } %>
+
+          <section class="chart-container section">
+            <h2>Investment Performance</h2>
+            <canvas id="investmentChart"></canvas>
+          </section>
+
+          <!-- TradingView Widget BEGIN -->
+          <div class="tradingview-widget-container section"> <!-- Added 'section' class for consistent styling -->
+            <h2>Live Market Data</h2>
+            <div class="tradingview-widget-container__widget"></div>
+            <div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank"><span class="blue-text">Track all markets on TradingView</span></a></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-screener.js" async>
+            {
+              "defaultColumn": "overview",
+              "screener_type": "crypto_mkt",
+              "displayCurrency": "USD",
+              "colorTheme": "light",
+              "isTransparent": false,
+              "locale": "en",
+              "width": "95%",
+              "height": 600
+            }
+            </script>
+          </div>
+          <!-- TradingView Widget END -->
+
+        </div>
+
+        <!-- The actual content for these sections will be rendered by their dedicated EJS files -->
+        <!-- These divs are mainly for the sidebar's JS to toggle visibility if you keep that method -->
+        <div class="section" id="my-plans-section" style="display: none">
+          <!-- Content for My Plans will be loaded via /my-plans route -->
+        </div>
+
+        <div class="section" id="deposit-section" style="display: none">
+          <!-- Content for Deposit will be loaded via /deposit route -->
+        </div>
+
+        <div class="section" id="withdraw-section" style="display: none">
+          <h2>Withdraw Funds</h2>
+          <form>
+            <input type="text" placeholder="Enter BTC Address" required />
+            <input type="number" placeholder="Amount to withdraw" required />
+            <button type="submit">Request Withdrawal</button>
+          </form>
+        </div>
+
+        <div class="section" id="transactions-section" style="display: none">
+          <h2>Transaction History</h2>
+          <ul>
+            <li>No transactions yet.</li>
+          </ul>
+        </div>
+
+        <!-- REMOVED: Inline Profile Section -->
+        <!-- The profile content is now in views/profile.ejs -->
+      </main>
+      
+    </div>
+
+    <!-- REMOVED: Custom Chat Toggle Button -->
+    <!-- REMOVED: Custom Chat Window -->
+
+    <!-- Sidebar toggle script (Existing) -->
+    <script>
+        const sidebarLogo = document.getElementById('sidebarLogo');
+        const dashboardContainer = document.querySelector('.dashboard-container');
+
+        if (sidebarLogo && dashboardContainer) {
+            sidebarLogo.addEventListener('click', () => {
+                dashboardContainer.classList.toggle('collapsed');
+            });
+        } else {
+            console.error('Sidebar toggle elements not found. Check HTML IDs/classes.');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.sidebar nav ul li a');
+
+            navLinks.forEach(link => {
+                link.closest('li').classList.remove('active');
+                // Ensure the active class is set for the current page
+                if (link.getAttribute('href') === currentPath) {
+                    link.closest('li').classList.add('active');
+                }
+            });
+        });
+    </script>
+
+    <!-- Profile Picture Upload Script (Existing) -->
+    <script>
+        const profileUploadInput = document.getElementById("profile-upload");
+        const profilePreviewImage = document.getElementById("profile-preview");
+        const profileIcon = document.getElementById("profileIcon");
+        // Removed profilePictureContainer.addEventListener as it's now wrapped in <a>
+        const statusMessageContainer = document.getElementById("status-message-container");
+
+        const baseUrl = '<%= app.locals.baseUrl %>';
+
+        let currentProfilePictureData = `<%= user.profilePicture || '' %>`;
+
+        function displayMessage(message, type) {
+            console.log(`Client Message (${type}): ${message}`);
+            statusMessageContainer.innerHTML = `<div class="message ${type}">${message}</div>`;
+            setTimeout(() => {
+                statusMessageContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        function updateProfilePictureDisplay(imageDataUrl) {
+            console.log('Client: Updating profile picture display with:', imageDataUrl ? 'image data' : 'no image data');
+            const finalSrc = (imageDataUrl && imageDataUrl !== 'null' && imageDataUrl !== 'undefined' && imageDataUrl !== '') ? imageDataUrl : '/images/default-avatar.png';
+            const showImage = finalSrc !== '/images/default-avatar.png';
+
+            if (showImage) {
+                profilePreviewImage.src = finalSrc;
+                profilePreviewImage.style.display = 'block';
+                if (profileIcon) {
+                    profileIcon.style.display = 'none';
+                }
+                console.log('Client: Image displayed, icon hidden.');
+            } else {
+                profilePreviewImage.style.display = 'none';
+                profilePreviewImage.src = ''; // Clear src to prevent broken image icon
+                if (profileIcon) {
+                    profileIcon.style.display = 'block';
+                }
+                console.log('Client: Icon displayed, image hidden.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Client: DOM Content Loaded. Initializing profile picture...');
+            updateProfilePictureDisplay(currentProfilePictureData);
+        });
+
+        // The profilePictureContainer click listener is removed because the container itself is now a link.
+        // The file input will now be triggered from the /profile page.
+        // If you still want to allow direct upload from dashboard header, you'd need to re-add this,
+        // but it might conflict with the link. For now, the primary upload is on the dedicated profile page.
+        // profilePictureContainer.addEventListener("click", () => {
+        //     console.log('Client: Profile picture container clicked. Triggering file input.');
+        //     profileUploadInput.click();
+        // });
+
+        // Keep the change listener for the hidden input if it's still intended for dashboard uploads
+        // However, given the new structure, it's likely this input should be removed from dashboard.ejs
+        // and only exist on profile.ejs. For now, I'm keeping it but commenting out the click trigger.
+        profileUploadInput.addEventListener("change", function () {
+            console.log('Client: File input change event detected.');
+            const file = this.files[0];
+
+            if (file) {
+                console.log('Client: File selected:', file.name, file.type, file.size);
+
+                const validImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
+                const maxSize = 5 * 1024 * 1024; // 5MB
+
+                if (!validImageTypes.includes(file.type)) {
+                    displayMessage('Invalid file type. Please upload a JPEG, PNG, or GIF image.', 'error');
+                    profileUploadInput.value = '';
+                    return;
+                }
+
+                if (file.size > maxSize) {
+                    displayMessage(`Image file is too large. Max ${maxSize / (1024 * 1024)}MB allowed.`, 'error');
+                    profileUploadInput.value = '';
+                    return;
+                }
+
+                displayMessage('Uploading image...', 'info');
+
+                const reader = new FileReader();
+
+                reader.onload = async function (e) {
+                    console.log('Client: FileReader onload event fired. Image data for preview ready.');
+                    const newImageDataUrl = e.target.result;
+
+                    updateProfilePictureDisplay(newImageDataUrl);
+
+                    console.log('Client: Preparing FormData for server...');
+                    const formData = new FormData();
+                    formData.append('profilePicture', file);
+
+                    // Log FormData contents for debugging
+                    for (let [key, value] of formData.entries()) {
+                        console.log(`Client: FormData entry - ${key}:`, value);
+                    }
+
+                    try {
+                        console.log(`Client: Sending image data to server via fetch to ${baseUrl}/profile/upload ...`);
+                        const response = await fetch(`${baseUrl}/profile/upload`, { // Use absolute URL
+                            method: 'POST',
+                            body: formData,
+                            // Do NOT set Content-Type header for FormData, browser sets it automatically
+                        });
+
+                        console.log('Client: Received response from server, status:', response.status);
+                        const result = await response.json();
+                        console.log('Client: Parsed server response:', result);
+
+                        if (response.ok && result.success) {
+                            displayMessage(result.message, 'success');
+                            currentProfilePictureData = result.profilePicture;
+                            updateProfilePictureDisplay(currentProfilePictureData);
+                        } else {
+                            displayMessage(result.message || 'Failed to upload profile picture.', 'error');
+                            // Revert to currentProfilePictureData if upload failed
+                            updateProfilePictureDisplay(currentProfilePictureData);
+                        }
+                    } catch (error) {
+                        console.error('Client: Error during fetch request:', error);
+                        displayMessage('An unexpected error occurred during upload. Please try again.', 'error');
+                        // Revert to currentProfilePictureData if network/fetch error
+                        updateProfilePictureDisplay(currentProfilePictureData);
+                    } finally {
+                        profileUploadInput.value = '';
+                        console.log('Client: File input cleared.');
+                    }
+                };
+
+                reader.onerror = function(e) {
+                    console.error('Client: FileReader error:', e);
+                    displayMessage('Error reading file. Please try another image.', 'error');
+                    updateProfilePictureDisplay(currentProfilePictureData);
+                    profileUploadInput.value = '';
+                };
+
+                reader.readAsDataURL(file);
+            } else {
+                console.log('Client: No file selected (user cancelled or no file).');
+                updateProfilePictureDisplay(currentProfilePictureData);
+                profileUploadInput.value = '';
+            }
+        });
+    </script>
+
+    <!-- Chart.js initialization for dashboard performance chart (Existing) -->
+    <script>
+      const investmentData = <%- JSON.stringify(user.investments) %>;
+
+      console.log('Investment Data for Dashboard Chart:', investmentData);
+
+      if (investmentData && investmentData.length > 0) {
+        const ctx = document.getElementById('investmentChart').getContext('2d');
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: investmentData.map(data => new Date(data.date).toLocaleDateString()),
+            datasets: [{
+              label: 'Portfolio Value ($)',
+              data: investmentData.map(data => data.value),
+              borderColor: '#03598c',
+              backgroundColor: 'rgba(3, 89, 140, 0.1)',
+              fill: true,
+              tension: 0.3
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                type: 'category',
+                title: {
+                  display: true,
+                  text: 'Date'
+                }
+              },
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: 'Value ($)'
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                display: true,
+                position: 'top',
+              },
+              tooltip: {
+                mode: 'index',
+                intersect: false,
+              }
+            }
+          }
+        });
+      } else {
+        const ctx = document.getElementById('investmentChart').getContext('2d');
+        if (ctx) {
+            const canvas = ctx.canvas;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '20px Poppins';
+            ctx.fillStyle = '#475569';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('No investment data yet.', canvas.width / 2, canvas.height / 2 - 20);
+            ctx.fillText('Make a deposit to see your performance!', canvas.width / 2, canvas.height / 2 + 10);
+        }
+      }
+    </script>
+
+    <!-- Socket.IO Real-time Updates Script (Existing - kept for balance updates) -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io(); // Connect to Socket.IO server
+
+        // Get elements to update
+        const totalBalanceElement = document.getElementById('totalBalance');
+        const activePlanElement = document.getElementById('activePlan');
+        const withdrawableBalanceElement = document.getElementById('withdrawableBalance');
+
+        // Emit 'registerUser' event with the current user's ID when the socket connects
+        socket.on('connect', () => {
+            const userId = '<%= user._id %>'; // Get user ID from EJS
+            if (userId) {
+                socket.emit('registerUser', userId);
+                console.log(`Socket.IO connected. Emitting registerUser for ID: ${userId}`);
+            } else {
+                console.warn('User ID not available for Socket.IO registration.');
+            }
+        });
+
+        // Listen for 'balanceUpdate' event from the server
+        socket.on('balanceUpdate', (data) => {
+            console.log('Received balanceUpdate event:', data);
+            if (totalBalanceElement) {
+                totalBalanceElement.textContent = `$${data.balance}`;
+            }
+            if (activePlanElement) {
+                activePlanElement.textContent = data.currentPlan;
+            }
+            if (withdrawableBalanceElement) {
+                withdrawableBalanceElement.textContent = `$${data.withdrawable}`;
+            }
+            displayMessage('Your dashboard data has been updated!', 'success');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Socket.IO disconnected.');
+        });
+
+        socket.on('connect_error', (error) => {
+            console.error('Socket.IO connection error:', error);
+            displayMessage('Real-time updates disconnected. Please refresh the page.', 'error');
+        });
+
+    </script>
+
+    <!-- REMOVED: All custom Real-time Chat Logic JavaScript -->
+
+    <!-- NEW: Smartsupp Live Chat script - PASTE YOUR UNIQUE CODE HERE -->
+    <!-- Replace 'YOUR_UNIQUE_SMARTSUPP_KEY' with the actual key from your Smartsupp account -->
+        <!-- Smartsupp Live Chat script -->
+         <!-- Smartsupp Live Chat script -->
+<script type="text/javascript">
+var _smartsupp = _smartsupp || {};
+_smartsupp.key = 'ba6a5df2d0615c8a2ce3a85521dc1af4083b028c';
+window.smartsupp||(function(d) {
+  var s,c,o=smartsupp=function(){ o._.push(arguments)};o._=[];
+  s=d.getElementsByTagName('script')[0];c=d.createElement('script');
+  c.type='text/javascript';c.charset='utf-8';c.async=true;
+  c.src='https://www.smartsuppchat.com/loader.js?';s.parentNode.insertBefore(c,s);
+})(document);
+</script>
+<noscript> Powered by <a href=“https://www.smartsupp.com” target=“_blank”>Smartsupp</a></noscript>
+  </body>
+</html>

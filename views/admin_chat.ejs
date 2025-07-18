@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Chat - Tradexa</title>
+    <!-- Reusing dashboard CSS for consistency -->
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- YOUR ORIGINAL INLINE CSS (UNCHANGED) -->
+    <style>
+        /* Admin Chat Specific Styles */
+        .admin-chat-container {
+            display: flex; /* This will be overridden by new styles below for column layout */
+            height: calc(100vh - 60px); /* Adjust based on header height, will be adjusted by new styles */
+            background-color: #f0f2f5;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .user-list-panel {
+            flex: 0 0 300px; /* Fixed width for user list */
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .user-list-panel h2 { /* This H2 will be removed from here in the HTML structure */
+            font-size: 22px;
+            color: #333;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            position: relative; /* For unread indicator positioning */
+        }
+
+        .user-item:hover, .user-item.active {
+            background-color: #e6f7ff; /* Light blue for hover/active */
+        }
+
+        .user-item:last-child {
+            border-bottom: none;
+        }
+
+        .user-item .profile-pic {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 15px;
+            border: 2px solid #03598c;
+        }
+
+        .user-item .profile-icon {
+            font-size: 45px;
+            color: #ccc;
+            margin-right: 15px;
+        }
+
+        .user-item .user-details {
+            flex-grow: 1; /* Allow details to take space */
+        }
+
+        .user-item .user-details h3 {
+            font-size: 16px;
+            margin: 0;
+            color: #333;
+        }
+
+        .user-item .user-details p {
+            font-size: 12px;
+            color: #777;
+            margin: 0;
+        }
+
+        .chat-area {
+            flex-grow: 1;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-area-header {
+            background-color: #03598c;
+            color: white;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: 600;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+            text-align: center;
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-input-area {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid #eee;
+            background-color: #fff;
+        }
+
+        .chat-input-area input {
+            flex-grow: 1;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 10px 15px;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+
+        .chat-input-area button {
+            background-color: #03598c;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-msg {
+            padding: 8px 12px;
+            border-radius: 15px;
+            margin-bottom: 10px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .chat-msg.admin {
+            background-color: #e0f7fa; /* Light blue for admin messages */
+            align-self: flex-end;
+            text-align: right;
+        }
+
+        .chat-msg.user {
+            background-color: #e6e6e6; /* Light gray for user messages */
+            align-self: flex-start;
+            text-align: left;
+        }
+
+        .chat-msg .timestamp {
+            font-size: 10px;
+            color: #888;
+            margin-top: 5px;
+            display: block;
+        }
+        .chat-msg.admin .timestamp {
+            text-align: right;
+        }
+        .chat-msg.user .timestamp {
+            text-align: left;
+        }
+
+        .no-chat-selected {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+            color: #777;
+            font-size: 18px;
+            text-align: center;
+        }
+    </style>
+
+    <!-- NEW STYLES FOR RESPONSIVE CHAT BEHAVIOR AND UNIFIED HEADER -->
+    <style>
+        /* General styles for loading/no chat messages, independent of screen size */
+        .no-chat-selected, .loading-history, .loading-message, .no-users-message, .error-message {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+            color: #777;
+            font-size: 18px;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Chat Header Specifics - Apply to all sizes, but some properties might be overridden in media queries */
+        .chat-area-header {
+            display: flex; /* Make header a flex container */
+            align-items: center;
+            gap: 10px; /* Space between items in header */
+            padding: 15px; /* Keep padding */
+            text-align: left; /* Default to left alignment for items */
+        }
+
+        .chat-area-header .back-button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            display: none; /* Hidden by default, shown by JS on mobile */
+            flex-shrink: 0; /* Prevent button from shrinking */
+        }
+
+        .chat-area-header .profile-pic { /* Style for selected user's avatar in chat header */
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            display: none; /* Hidden by default */
+            flex-shrink: 0;
+            background-color: #e0e0e0; /* Fallback background color */
+            border: 1px solid #ccc; /* Subtle border for visibility */
+            /* Ensure it's centered if it's an icon fallback */
+            display: flex; /* Use flex to center potential icon/text if image fails */
+            align-items: center;
+            justify-content: center;
+            font-size: 20px; /* For potential icon */
+            color: #777; /* For potential icon */
+        }
+
+        .chat-area-header.user-selected .profile-pic {
+            display: flex; /* Change to flex to ensure centering of fallback content */
+        }
+
+        .chat-area-header #selectedUserName { /* Style for selected user's name in chat header */
+            flex-grow: 1; /* Allows name to take available space */
+            text-align: center; /* Center text by default */
+        }
+
+        .chat-area-header.user-selected #selectedUserName {
+            text-align: left; /* Align name to left when user is selected and avatar/back button are present */
+            margin-left: 5px; /* Small margin for spacing from avatar */
+        }
+
+        /* NEW: Styles for the overall chat container and its new header */
+        .admin-chat-container {
+            display: flex;
+            flex-direction: column; /* Stack header and chat panels vertically */
+            height: calc(100vh - 180px); /* Adjusted height, considering dashboard header and padding */
+            background-color: #f0f2f5;
+            padding: 20px;
+            gap: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            position: relative; /* For absolute positioning of chat-panels-wrapper on mobile */
+            overflow: hidden; /* Hide overflow during mobile slides */
+        }
+
+        .admin-chat-main-header {
+            background-color: #03598c; /* Dark blue background */
+            color: white;
+            padding: 15px 20px;
+            font-size: 22px;
+            font-weight: 600;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+            text-align: center;
+            flex-shrink: 0; /* Prevent it from shrinking */
+            margin: -20px -20px 0 -20px; /* Adjust to sit flush with container edges */
+            border-radius: 10px 10px 0 0; /* Rounded top corners */
+        }
+
+        .admin-chat-main-header h2 {
+            margin: 0; /* Remove default h2 margin */
+            font-size: inherit; /* Inherit font size from parent */
+            color: inherit; /* Inherit color from parent */
+            border-bottom: none; /* Remove border from original h2 style */
+            padding-bottom: 0; /* Remove padding from original h2 style */
+        }
+
+        .chat-panels-wrapper {
+            flex-grow: 1; /* Take remaining height */
+            display: flex; /* Desktop: side-by-side */
+            gap: 20px; /* Desktop: gap between panels */
+            position: relative; /* Crucial for absolute positioning of children on mobile */
+            overflow: hidden; /* Hide overflow during mobile slides */
+            width: 100%; /* Ensure it takes full width */
+        }
+
+        .user-list-panel {
+            flex: 0 0 300px; /* Fixed width for user list on desktop */
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Keep shadow */
+            overflow-y: auto;
+            padding: 20px;
+            display: flex; /* Ensure it's a flex container for its children */
+            flex-direction: column;
+            z-index: 1; /* Ensure it's above chat-area when needed */
+            height: 100%; /* Take full height of wrapper */
+            box-sizing: border-box; /* Include padding in height */
+        }
+
+        .chat-area {
+            flex-grow: 1;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease-in-out; /* Add transition for sliding */
+            height: 100%; /* Take full height of wrapper */
+            box-sizing: border-box; /* Include padding in height */
+        }
+
+        /* NEW: Unread Message Indicator */
+        .unread-indicator {
+            position: absolute;
+            top: 15px; /* Adjust based on user-item padding/height */
+            right: 15px; /* Adjust based on user-item padding/width */
+            width: 12px;
+            height: 12px;
+            background-color: #FF5722; /* Orange/Red for unread */
+            border-radius: 50%;
+            display: none; /* Hidden by default */
+            border: 2px solid #fff; /* White border for visibility */
+        }
+
+        .user-item.has-unread .unread-indicator {
+            display: block; /* Show when user has unread messages */
+        }
+
+
+        /* Responsive overrides for smaller screens (MOBILE-SPECIFIC STYLES ONLY) */
+        @media (max-width: 768px) {
+            .admin-chat-container {
+                padding: 15px; /* Adjust padding for mobile */
+                gap: 0; /* No gap when panels are absolutely positioned */
+                height: calc(100vh - 120px); /* Adjusted for mobile header and padding */
+            }
+
+            .admin-chat-main-header {
+                margin: -15px -15px 0 -15px; /* Adjust to sit flush with container edges on mobile */
+                padding: 12px 15px;
+                font-size: 20px;
+            }
+
+            .chat-panels-wrapper {
+                flex-direction: column; /* Not strictly necessary due to absolute positioning, but good for semantic */
+                gap: 0; /* No gap for mobile */
+                position: absolute; /* Crucial: make wrapper absolute within container */
+                top: 60px; /* Position below the new main header */
+                left: 0;
+                width: 100%;
+                height: calc(100% - 60px); /* Take remaining height below header */
+            }
+
+            .user-list-panel {
+                position: absolute; /* Position absolutely within chat-panels-wrapper */
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                transform: translateX(0); /* Ensure it's visible by default */
+                border-radius: 0; /* Remove border-radius for full-screen slide */
+                box-shadow: none; /* Remove shadow for full-screen slide */
+            }
+
+            .chat-area {
+                position: absolute; /* Position absolutely within chat-panels-wrapper */
+                top: 0;
+                left: 100%; /* Start off-screen to the right */
+                width: 100%;
+                height: 100%;
+                transform: translateX(0); /* Reset transform for initial state */
+                border-radius: 0; /* Remove border-radius for full-screen slide */
+                box-shadow: none; /* Remove shadow for full-screen slide */
+            }
+
+            .chat-area.active-chat { /* Class added by JS when chat is active */
+                transform: translateX(-100%); /* Slide left to cover user list */
+            }
+
+            /* Show back button on mobile when chat is active */
+            .chat-area-header .back-button {
+                display: block;
+                margin-right: 10px;
+            }
+
+            /* Adjustments for chat input area on mobile */
+            .chat-input-area {
+                padding: 10px;
+                gap: 8px; /* Smaller gap for input and button */
+            }
+
+            .chat-input-area input {
+                font-size: 14px;
+                padding: 8px 12px;
+            }
+
+            .chat-input-area button {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+                padding: 0; /* Remove padding as width/height are set */
+            }
+        }
+
+        @media (max-width: 480px) {
+            /* Further minor adjustments for very small screens if needed */
+            .admin-chat-container {
+                padding: 10px; /* Even less padding */
+                height: calc(100vh - 100px); /* Adjust height for very small mobile */
+            }
+            .admin-chat-main-header {
+                padding: 10px 12px;
+                font-size: 18px;
+                margin: -10px -10px 0 -10px;
+            }
+            .chat-panels-wrapper {
+                top: 50px; /* Adjust top position for smaller header */
+                height: calc(100% - 50px); /* Adjust height for smaller header */
+            }
+            .user-list-panel, .chat-area {
+                padding: 10px; /* Adjust inner padding */
+            }
+            .user-item {
+                padding: 10px;
+            }
+            .user-item .profile-pic, .user-item .profile-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 40px;
+            }
+            .user-item .user-details h3 {
+                font-size: 15px;
+            }
+            .user-item .user-details p {
+                font-size: 11px;
+            }
+            .chat-area-header {
+                font-size: 16px;
+                padding: 12px;
+            }
+            .chat-area-header .back-button {
+                font-size: 20px;
+            }
+            .chat-area-header .profile-pic {
+                width: 35px;
+                height: 35px;
+            }
+            .chat-messages {
+                padding: 8px;
+            }
+            .chat-input-area {
+                padding: 8px;
+            }
+            .chat-input-area input {
+                font-size: 13px;
+                padding: 6px 10px;
+            }
+            .chat-input-area button {
+                width: 35px;
+                height: 35px;
+                font-size: 14px;
+            }
+            .chat-msg {
+                font-size: 13px;
+                padding: 6px 10px;
+            }
+            .chat-msg .timestamp {
+                font-size: 9px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar (reusing from dashboard.ejs) -->
+        <aside class="sidebar">
+            <h2 class="logo" id="sidebarLogo">
+                <span class="logo-text">Tradexa</span>
+                <i class="fas fa-bars logo-toggle-icon"></i>
+            </h2>
+            <nav>
+                <ul>
+                    <li><a href="/admin/dashboard"><i class="fas fa-tachometer-alt"></i> <span class="nav-text">Dashboard</span></a></li>
+                    <li class="active"><a href="/admin/chat"><i class="fas fa-comments"></i> <span class="nav-text">Chat</span></a></li>
+                    <li><a href="/admin/logout"><i class="fas fa-sign-out-alt"></i> <span class="nav-text">Logout</span></a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="dashboard-header">
+                <h1>Admin Chat</h1>
+                <div class="user-info">
+                    <span>Hello, Admin</span>
+                    <div class="profile-picture-container">
+                        <i class="fas fa-user-shield profile-icon"></i> <!-- Admin icon -->
+                    </div>
+                </div>
+            </header>
+
+            <div class="admin-chat-container">
+                <div class="admin-chat-main-header">
+                    <h2>Users Chatting</h2>
+                </div>
+                <div class="chat-panels-wrapper">
+                    <div class="user-list-panel" id="userListPanel">
+                        <div id="userList">
+                            <!-- User list will be populated here by JavaScript -->
+                            <p class="loading-message">Loading users...</p>
+                        </div>
+                    </div>
+
+                    <div class="chat-area" id="chatArea">
+                        <div class="chat-area-header">
+                            <button id="backToUsersBtn" class="back-button"><i class="fas fa-arrow-left"></i></button>
+                            <img id="selectedUserAvatar" src="/images/default-avatar.png" alt="User Avatar" class="profile-pic">
+                            <span id="selectedUserName">Select a user to chat</span>
+                        </div>
+                        <div class="chat-messages" id="chatMessages">
+                            <p class="no-chat-selected">No conversation selected.</p>
+                            <p class="loading-history" style="display: none;">Loading chat history...</p>
+                        </div>
+                        <div class="chat-input-area" style="display: none;" id="chatInputArea">
+                            <input type="text" id="chatInput" placeholder="Type your message...">
+                            <button id="sendChatBtn"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Socket.IO Client Library -->
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        const adminUserId = '<%= user._id %>'; // Admin's own user ID from session (Passport.js)
+        const ADMIN_USER_ID_CONSTANT = '6877bacad96b3dc79c10f2d9'; // Your hardcoded admin ID for comparison
+
+        const userListDiv = document.getElementById('userList');
+        const userListPanel = document.getElementById('userListPanel');
+        const chatArea = document.getElementById('chatArea');
+        const chatAreaHeader = document.querySelector('#chatArea .chat-area-header');
+        const chatMessagesDiv = document.getElementById('chatMessages');
+        const chatInputArea = document.getElementById('chatInputArea');
+        const chatInput = document.getElementById('chatInput');
+        const sendChatBtn = document.getElementById('sendChatBtn');
+        const backToUsersBtn = document.getElementById('backToUsersBtn');
+        const selectedUserAvatar = document.getElementById('selectedUserAvatar');
+        const selectedUserName = document.getElementById('selectedUserName');
+
+        let currentChatUser = null; // Stores the full user object admin is currently chatting with
+
+        // NEW: Object to store unread message counts per user ID
+        // This will persist across page loads if using localStorage, otherwise it's just for current session
+        let unreadMessages = JSON.parse(localStorage.getItem('unreadMessages') || '{}');
+
+        // Function to format timestamp
+        function formatTimestamp(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Function to display a message in the chat window
+        function displayMessage(message, senderType) {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('chat-msg', senderType);
+            msgDiv.innerHTML = `${message.message} <span class="timestamp">${formatTimestamp(message.createdAt)}</span>`;
+            chatMessagesDiv.appendChild(msgDiv);
+            chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight; // Auto-scroll to bottom
+        }
+
+        // Function to load chat history for a specific user and manage UI
+        async function loadChatHistory(user) {
+            // Update currentChatUser
+            currentChatUser = user;
+
+            // Update chat header with selected user's info
+            selectedUserAvatar.src = user.profilePicture || '/images/default-avatar.png';
+            selectedUserName.textContent = user.fullName;
+            chatAreaHeader.classList.add('user-selected'); // Add class to style header when user is selected
+
+            // Clear previous messages and show loading indicator
+            chatMessagesDiv.innerHTML = '';
+            const loadingDiv = document.createElement('p');
+            loadingDiv.classList.add('loading-history');
+            loadingDiv.textContent = 'Loading chat history...';
+            chatMessagesDiv.appendChild(loadingDiv);
+
+            chatInputArea.style.display = 'flex'; // Show input area
+
+            // Request history from server
+            socket.emit('requestChatHistory', { userId: adminUserId, otherUserId: user._id });
+
+            // Manage panel visibility for mobile
+            if (window.innerWidth <= 768) {
+                userListPanel.style.display = 'none'; // Hide user list
+                chatArea.style.display = 'flex'; // Show chat area
+                chatArea.classList.add('active-chat'); // Trigger slide-in animation
+                backToUsersBtn.style.display = 'block'; // Show back button
+            }
+            // For desktop, the CSS handles display: flex, so no explicit JS display changes needed here.
+
+            // Add active class to selected user in list
+            document.querySelectorAll('.user-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.userId === user._id) {
+                    item.classList.add('active');
+                }
+            });
+
+            // NEW: Clear unread indicator for this user when their chat is opened
+            if (unreadMessages[user._id]) {
+                delete unreadMessages[user._id];
+                localStorage.setItem('unreadMessages', JSON.stringify(unreadMessages)); // Save state
+                const userItemElement = document.querySelector(`.user-item[data-user-id="${user._id}"]`);
+                if (userItemElement) {
+                    userItemElement.classList.remove('has-unread');
+                }
+            }
+        }
+
+        // Listen for chat history from server
+        socket.on('chatHistory', (history) => {
+            // Remove loading indicator
+            const loadingDiv = chatMessagesDiv.querySelector('.loading-history');
+            if (loadingDiv) {
+                chatMessagesDiv.removeChild(loadingDiv);
+            }
+
+            chatMessagesDiv.innerHTML = ''; // Clear again to ensure clean slate after loading indicator removal
+
+            if (history.length === 0) {
+                const noMessagesDiv = document.createElement('p');
+                noMessagesDiv.classList.add('no-chat-selected');
+                noMessagesDiv.textContent = 'No previous messages with this user. Start a conversation!';
+                chatMessagesDiv.appendChild(noMessagesDiv);
+            } else {
+                history.forEach(msg => {
+                    const senderType = (msg.sender._id === adminUserId) ? 'admin' : 'user';
+                    displayMessage(msg, senderType);
+                });
+            }
+            chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight; // Scroll to bottom
+        });
+
+        // Listen for new incoming chat messages (from any user)
+        socket.on('receiveChatMessage', (message) => {
+            // If the message is for the currently selected user, display it
+            // OR if the message is sent by the admin (current client) to the selected user
+            if (currentChatUser && (message.sender._id === currentChatUser._id || (message.sender._id === adminUserId && message.receiver._id === currentChatUser._id))) {
+                // Ensure "No conversation selected" is hidden if a message arrives
+                const noChatSelected = chatMessagesDiv.querySelector('.no-chat-selected');
+                if (noChatSelected) noChatSelected.style.display = 'none';
+
+                const senderType = (message.sender._id === adminUserId) ? 'admin' : 'user';
+                displayMessage(message, senderType);
+
+                // NEW: If the message is from the currently active user, clear their unread indicator
+                // This handles cases where a message arrives while the chat is open
+                if (message.sender._id === currentChatUser._id && unreadMessages[currentChatUser._id]) {
+                    delete unreadMessages[currentChatUser._id];
+                    localStorage.setItem('unreadMessages', JSON.stringify(unreadMessages));
+                    const userItemElement = document.querySelector(`.user-item[data-user-id="${currentChatUser._id}"]`);
+                    if (userItemElement) {
+                        userItemElement.classList.remove('has-unread');
+                    }
+                }
+
+            } else if (message.receiver._id === adminUserId) {
+                // NEW: If the message is for the admin (this client) but from a *different* user
+                // Increment unread count for that user
+                const userId = message.sender._id;
+                unreadMessages[userId] = (unreadMessages[userId] || 0) + 1;
+                localStorage.setItem('unreadMessages', JSON.stringify(unreadMessages)); // Save state
+
+                // Update the user list to show the unread indicator
+                // We re-fetch to ensure the list is updated and the indicator appears
+                fetchUserList();
+            }
+        });
+
+        // NEW: Listen for 'userNewMessage' event from the server (when a user sends a message to admin)
+        socket.on('userNewMessage', (data) => {
+            const userId = data.userId;
+            console.log(`Received userNewMessage event for user: ${userId}`);
+
+            // If the message is from the *currently active* chat user, we don't need to mark as unread
+            // because they are already looking at the chat. The 'receiveChatMessage' handler above
+            // will handle displaying the message and clearing the indicator if needed.
+            if (currentChatUser && currentChatUser._id === userId) {
+                console.log(`Message from current chat user ${userId}. No unread indicator needed.`);
+                return;
+            }
+
+            // Otherwise, increment unread count for that user
+            unreadMessages[userId] = (unreadMessages[userId] || 0) + 1;
+            localStorage.setItem('unreadMessages', JSON.stringify(unreadMessages)); // Save state
+
+            // Update the user list to show the unread indicator
+            // We re-fetch to ensure the list is updated and the indicator appears
+            fetchUserList();
+        });
+
+
+        // Handle sending messages from admin
+        sendChatBtn.addEventListener('click', () => {
+            const messageText = chatInput.value.trim();
+            if (messageText && currentChatUser) {
+                socket.emit('sendChatMessage', {
+                    senderId: adminUserId,
+                    receiverId: currentChatUser._id,
+                    messageText: messageText
+                });
+                chatInput.value = ''; // Clear input
+            }
+        });
+
+        // Allow sending message on Enter key press
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendChatBtn.click();
+            }
+        });
+
+        // Handle chat errors from server
+        socket.on('chatError', (error) => {
+            console.error('Chat error from server:', error.message);
+            const errorDiv = document.createElement('p');
+            errorDiv.classList.add('chat-msg', 'user'); // Display as an 'user' message (incoming error)
+            errorDiv.style.backgroundColor = '#ffe0e0';
+            errorDiv.style.color = '#d32f2f';
+            errorDiv.innerHTML = `Error: ${error.message} <span class="timestamp">${formatTimestamp(new Date())}</span>`;
+            chatMessagesDiv.appendChild(errorDiv);
+            chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+        });
+
+        // --- User List Logic ---
+        async function fetchUserList() {
+            userListDiv.innerHTML = '<p class="loading-message">Loading users...</p>';
+            try {
+                const response = await fetch('/admin/chat/users');
+                const data = await response.json();
+
+                if (data.success) {
+                    userListDiv.innerHTML = ''; // Clear loading message
+                    if (data.users.length === 0) {
+                        userListDiv.innerHTML = '<p class="no-users-message">No users with chat history yet.</p>';
+                    } else {
+                        data.users.forEach(user => {
+                            const userItem = document.createElement('div');
+                            userItem.classList.add('user-item');
+                            if (currentChatUser && currentChatUser._id === user._id) { // Use currentChatUser here
+                                userItem.classList.add('active');
+                            }
+                            userItem.dataset.userId = user._id; // Store user ID
+                            userItem.innerHTML = `
+                                ${user.profilePicture ? `<img src="${user.profilePicture}" alt="Profile" class="profile-pic">` : `<i class="fas fa-user-circle profile-icon"></i>`}
+                                <div class="user-details">
+                                    <h3>${user.fullName}</h3>
+                                    <p>${user.email}</p>
+                                </div>
+                                <div class="unread-indicator"></div> <!-- NEW: Unread indicator -->
+                            `;
+                            
+                            // NEW: Apply 'has-unread' class if user has unread messages
+                            if (unreadMessages[user._id]) {
+                                userItem.classList.add('has-unread');
+                            }
+
+                            userItem.addEventListener('click', () => {
+                                // Remove active class from previous selected user
+                                const currentActive = userListDiv.querySelector('.user-item.active');
+                                if (currentActive) {
+                                    currentActive.classList.remove('active');
+                                }
+                                userItem.classList.add('active'); // Add active class to clicked user
+                                loadChatHistory(user); // Pass the full user object
+                            });
+                            userListDiv.appendChild(userItem);
+                        });
+                    }
+                } else {
+                    userListDiv.innerHTML = `<p class="error-message">Error: ${data.message}</p>`;
+                }
+            } catch (error) {
+                console.error('Error fetching user list:', error);
+                userListDiv.innerHTML = '<p class="error-message">Failed to load user list.</p>';
+            }
+        }
+
+        // Back to Users button functionality (for mobile)
+        backToUsersBtn.addEventListener('click', () => {
+            userListPanel.style.display = 'flex'; // Show user list
+            chatArea.style.display = 'none'; // Hide chat area
+            chatArea.classList.remove('active-chat'); // Remove class to trigger slide-out
+            currentChatUser = null; // Reset selected user
+            selectedUserAvatar.src = '/images/default-avatar.png'; // Reset avatar
+            selectedUserName.textContent = 'Select a user to chat'; // Reset name
+            chatInputArea.style.display = 'none'; // Hide input
+            chatMessagesDiv.innerHTML = '<p class="no-chat-selected">No conversation selected.</p>'; // Reset messages
+            document.querySelectorAll('.user-item').forEach(item => item.classList.remove('active')); // Remove active state
+            handleResize(); // Re-evaluate layout after going back
+        });
+
+        // Handle window resize for responsive layout
+        function handleResize() {
+            if (window.innerWidth > 768) {
+                // Desktop view: Ensure both panels are visible and back button is hidden
+                userListPanel.style.display = 'flex';
+                chatArea.style.display = 'flex';
+                chatArea.classList.remove('active-chat'); // Ensure mobile slide class is removed on desktop
+                backToUsersBtn.style.display = 'none'; // Hide back button on desktop
+            } else {
+                // Mobile view: manage panels based on whether a user is selected
+                if (currentChatUser) { // If a user is selected, show chat area
+                    userListPanel.style.display = 'none';
+                    chatArea.style.display = 'flex';
+                    chatArea.classList.add('active-chat'); // Ensure slide-in class is present
+                    backToUsersBtn.style.display = 'block';
+                } else { // If no user selected, show user list
+                    userListPanel.style.display = 'flex';
+                    chatArea.style.display = 'none';
+                    chatArea.classList.remove('active-chat'); // Ensure no mobile slide class
+                    backToUsersBtn.style.display = 'none';
+                }
+            }
+        }
+
+        // Initial fetch of user list when admin chat page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchUserList();
+            // NEW: Register admin's socket with the server
+            socket.emit('registerAdmin', adminUserId); 
+
+            // Sidebar toggle logic (from your existing code)
+            const sidebarLogo = document.getElementById('sidebarLogo');
+            const dashboardContainer = document.querySelector('.dashboard-container');
+
+            if (sidebarLogo && dashboardContainer) {
+                sidebarLogo.addEventListener('click', () => {
+                    dashboardContainer.classList.toggle('collapsed');
+                });
+            } else {
+                console.error('Sidebar toggle elements not found. Check HTML IDs/classes.');
+            }
+            
+            // Add active class based on current path for admin sidebar
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.sidebar nav ul li a');
+
+            navLinks.forEach(link => {
+                link.closest('li').classList.remove('active');
+                if (link.getAttribute('href') === currentPath) {
+                    link.closest('li').classList.add('active');
+                }
+                if (currentPath === '/admin/dashboard' && link.getAttribute('href') === '/admin/dashboard') {
+                    link.closest('li').classList.add('active');
+                }
+            });
+
+            // Initial call to handleResize to set correct display based on screen size
+            handleResize();
+        });
+
+        // Listen for window resize events
+        window.addEventListener('resize', handleResize);
+    </script>
+</body>
+</html>

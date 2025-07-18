@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="css/dashboard.css">
+    <style>
+        /* General styling for the profile page */
+        .profile-content {
+            padding: 20px;
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .profile-header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .profile-header h2 {
+            font-size: 28px;
+            color: #03598c;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .profile-avatar-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .profile-avatar-wrapper {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            cursor: pointer; /* Indicate it's clickable */
+        }
+
+        .profile-avatar-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+            display: block; /* Ensure image takes up space */
+        }
+
+        .profile-avatar-wrapper .bx-user-circle {
+            font-size: 80px; /* Larger icon */
+            color: #666;
+            display: none; /* Hidden by default, shown if no image */
+        }
+
+        .profile-avatar-wrapper:hover .overlay {
+            opacity: 1;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .overlay i {
+            color: #fff;
+            font-size: 30px;
+        }
+
+        .profile-form .form-group {
+            margin-bottom: 20px;
+        }
+
+        .profile-form label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+            font-size: 15px;
+        }
+
+        .profile-form input[type="text"],
+        .profile-form input[type="email"],
+        .profile-form input[type="tel"],
+        .profile-form select {
+            width: calc(100% - 24px); /* Account for padding */
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #333;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .profile-form input[type="text"]:focus,
+        .profile-form input[type="email"]:focus,
+        .profile-form input[type="tel"]:focus,
+        .profile-form select:focus {
+            border-color: #03598c;
+            box-shadow: 0 0 0 3px rgba(3, 89, 140, 0.2);
+            outline: none;
+        }
+
+        .profile-form input[type="email"] {
+            background-color: #f0f0f0; /* Make email read-only visually */
+            cursor: not-allowed;
+        }
+
+        .btn-update-profile {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background-color: #03598c;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            margin-top: 20px;
+        }
+
+        .btn-update-profile:hover {
+            background-color: #024a75;
+            transform: translateY(-2px);
+        }
+
+        .message {
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            text-align: center;
+            opacity: 0; /* Hidden by default */
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            transform: translateY(10px);
+        }
+
+        .message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .profile-content {
+                margin: 15px;
+                padding: 15px;
+            }
+
+            .profile-header h2 {
+                font-size: 24px;
+            }
+
+            .profile-avatar-wrapper {
+                width: 100px;
+                height: 100px;
+            }
+
+            .profile-avatar-wrapper .bx-user-circle {
+                font-size: 70px;
+            }
+
+            .profile-form input[type="text"],
+            .profile-form input[type="email"],
+            .profile-form input[type="tel"],
+            .profile-form select {
+                font-size: 14px;
+                padding: 10px;
+            }
+
+            .btn-update-profile {
+                font-size: 16px;
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h2 class="logo" id="sidebarLogo">
+                <span class="logo-text">Tradexa</span>
+                <i class="fas fa-bars logo-toggle-icon"></i>
+            </h2>
+            <nav>
+                <ul>
+                    <li class="<%= currentPage === 'dashboard' ? 'active' : '' %>" data-section="dashboard">
+                        <a href="/dashboard"><i class="fas fa-home"></i> <span class="nav-text">Dashboard</span></a>
+                    </li>
+                    <li class="<%= currentPage === 'my-plans' ? 'active' : '' %>" data-section="my-plans">
+                        <a href="/my-plans"><i class="fas fa-chart-line"></i> <span class="nav-text">My Plans</span></a>
+                    </li>
+                    <li class="<%= currentPage === 'deposit' ? 'active' : '' %>" data-section="deposit">
+                        <a href="/deposit"><i class="fas fa-arrow-down"></i> <span class="nav-text">Deposit</span></a>
+                    </li>
+                    <li class="<%= currentPage === 'withdraw' ? 'active' : '' %>" data-section="withdraw">
+                        <a href="/withdraw"><i class="fas fa-arrow-up"></i> <span class="nav-text">Withdraw</span></a>
+                    </li>
+                    <li class="<%= currentPage === 'transactions' ? 'active' : '' %>" data-section="transactions">
+                        <a href="/transactions"><i class="fas fa-list"></i> <span class="nav-text">Transactions</span></a>
+                    </li>
+                    <li class="<%= currentPage === 'profile' ? 'active' : '' %>" data-section="profile">
+                        <a href="/profile"><i class="fas fa-user"></i> <span class="nav-text">Profile</span></a>
+                    </li>
+                    <li>
+                        <a href="/logout"><i class="fas fa-sign-out-alt"></i> <span class="nav-text">Logout</span></a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="dashboard-header">
+                <h1>My Profile</h1>
+                <div class="user-info">
+                    <!-- Profile Picture Display in Header -->
+                    <div class="profile-picture-container">
+                        <img id="header-profile-preview"
+                             src="<%= user.profilePicture && user.profilePicture !== '' ? user.profilePicture : '/images/default-avatar.png' %>"
+                             alt="User Avatar"
+                             class="profile-image"
+                             onerror="this.src='/images/default-avatar.png';">
+                    </div>
+                </div>
+            </header>
+
+            <div class="profile-content">
+                <div class="profile-header">
+                    <h2>Edit Profile</h2>
+                </div>
+
+                <div id="status-message-container" class="message-container">
+                    <!-- Messages will be displayed here -->
+                </div>
+
+                <div class="profile-avatar-section">
+                    <!-- Hidden file input for picture upload -->
+                    <form id="profileUploadForm" enctype="multipart/form-data" style="display: none;">
+                        <input type="file" id="profile-upload" name="profilePicture" accept="image/png, image/jpeg, image/gif">
+                    </form>
+
+                    <!-- Clickable avatar area -->
+                    <div class="profile-avatar-wrapper" id="profileAvatarWrapper">
+                        <img id="profile-preview"
+                             src="<%= user.profilePicture && user.profilePicture !== '' ? user.profilePicture : '/images/default-avatar.png' %>"
+                             alt="Profile Picture"
+                             onerror="this.style.display='none'; document.getElementById('profileIcon').style.display='block';">
+                        <i class='bx bxs-user-circle' id="profileIcon" style="<%= user.profilePicture && user.profilePicture !== '' ? 'display: none;' : 'display: block;' %>"></i>
+                        <div class="overlay">
+                            <i class='bx bxs-camera'></i>
+                        </div>
+                    </div>
+                    <p>Click to change profile picture</p>
+                </div>
+
+                <form id="profileUpdateForm" class="profile-form">
+                    <div class="form-group">
+                        <label for="fullName">Full Name</label>
+                        <input type="text" id="fullName" name="fullName" value="<%= user.fullName %>" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" value="<%= user.email %>" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="phoneNumber">Phone Number</label>
+                        <input type="tel" id="phoneNumber" name="phoneNumber" value="<%= user.phoneNumber %>" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender" name="gender" required>
+                            <option value="">Select Gender</option>
+                            <option value="Male" <%= user.gender === 'Male' ? 'selected' : '' %>>Male</option>
+                            <option value="Female" <%= user.gender === 'Female' ? 'selected' : '' %>>Female</option>
+                            <option value="Other" <%= user.gender === 'Other' ? 'selected' : '' %>>Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="country">Country</label>
+                        <input type="text" id="country" name="country" value="<%= user.country %>" required>
+                    </div>
+                    <button type="submit" class="btn-update-profile">Update Profile</button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <!-- Sidebar toggle script (Existing) -->
+    <script>
+        const sidebarLogo = document.getElementById('sidebarLogo');
+        const dashboardContainer = document.querySelector('.dashboard-container');
+
+        if (sidebarLogo && dashboardContainer) {
+            sidebarLogo.addEventListener('click', () => {
+                dashboardContainer.classList.toggle('collapsed');
+            });
+        } else {
+            console.error('Sidebar toggle elements not found. Check HTML IDs/classes.');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.sidebar nav ul li a');
+
+            navLinks.forEach(link => {
+                link.closest('li').classList.remove('active');
+                if (link.getAttribute('href') === currentPath) {
+                    link.closest('li').classList.add('active');
+                }
+            });
+        });
+    </script>
+
+    <!-- Profile Picture Upload & Update Script (Specific to Profile Page) -->
+    <script>
+        const profileUploadInput = document.getElementById('profile-upload');
+        const profileAvatarWrapper = document.getElementById('profileAvatarWrapper');
+        const profilePreviewImage = document.getElementById('profile-preview');
+        const profileIcon = document.getElementById('profileIcon');
+        const headerProfilePreview = document.getElementById('header-profile-preview'); // For updating header image
+        const statusMessageContainer = document.getElementById('status-message-container');
+        const profileUpdateForm = document.getElementById('profileUpdateForm');
+
+        const baseUrl = '<%= app.locals.baseUrl %>';
+
+        function displayMessage(message, type) {
+            console.log(`Client Message (${type}): ${message}`);
+            statusMessageContainer.innerHTML = `<div class="message ${type}">${message}</div>`;
+            // Add 'show' class to trigger animation
+            setTimeout(() => {
+                const messageElement = statusMessageContainer.querySelector('.message');
+                if (messageElement) {
+                    messageElement.classList.add('show');
+                }
+            }, 10); // Small delay to allow CSS transition
+
+            setTimeout(() => {
+                const messageElement = statusMessageContainer.querySelector('.message');
+                if (messageElement) {
+                    messageElement.classList.remove('show');
+                    // Optional: Remove element after transition for cleanup
+                    messageElement.addEventListener('transitionend', () => {
+                        if (!messageElement.classList.contains('show')) {
+                            statusMessageContainer.innerHTML = '';
+                        }
+                    }, { once: true });
+                }
+            }, 5000);
+        }
+
+        function updateProfilePictureDisplay(imageDataUrl) {
+            console.log('Client (profile.ejs): Updating profile picture display with:', imageDataUrl ? 'image data' : 'no image data');
+            const finalSrc = (imageDataUrl && imageDataUrl !== 'null' && imageDataUrl !== 'undefined' && imageDataUrl !== '') ? imageDataUrl : '/images/default-avatar.png';
+            const showImage = finalSrc !== '/images/default-avatar.png';
+
+            // Update main profile page image
+            if (showImage) {
+                profilePreviewImage.src = finalSrc;
+                profilePreviewImage.style.display = 'block';
+                if (profileIcon) {
+                    profileIcon.style.display = 'none';
+                }
+            } else {
+                profilePreviewImage.style.display = 'none';
+                profilePreviewImage.src = ''; // Clear src to prevent broken image icon
+                if (profileIcon) {
+                    profileIcon.style.display = 'block';
+                }
+            }
+
+            // Update header profile picture (if element exists)
+            if (headerProfilePreview) {
+                headerProfilePreview.src = finalSrc;
+                // The onerror for header image will handle default display if needed
+            }
+            console.log('Client (profile.ejs): Profile image display updated.');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Client (profile.ejs): DOM Content Loaded. Initializing profile picture...');
+            // Initial display based on current user data
+            updateProfilePictureDisplay('<%= user.profilePicture || "" %>');
+        });
+
+        profileAvatarWrapper.addEventListener('click', () => {
+            console.log('Client (profile.ejs): Profile avatar clicked. Triggering file input.');
+            profileUploadInput.click();
+        });
+
+        profileUploadInput.addEventListener('change', async function() {
+            console.log('Client (profile.ejs): File input change event detected.');
+            const file = this.files[0];
+
+            if (file) {
+                console.log('Client (profile.ejs): File selected:', file.name, file.type, file.size);
+
+                const validImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
+                const maxSize = 5 * 1024 * 1024; // 5MB
+
+                if (!validImageTypes.includes(file.type)) {
+                    displayMessage('Invalid file type. Please upload a JPEG, PNG, or GIF image.', 'error');
+                    profileUploadInput.value = '';
+                    return;
+                }
+
+                if (file.size > maxSize) {
+                    displayMessage(`Image file is too large. Max ${maxSize / (1024 * 1024)}MB allowed.`, 'error');
+                    profileUploadInput.value = '';
+                    return;
+                }
+
+                displayMessage('Uploading image...', 'info');
+
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    console.log('Client (profile.ejs): FileReader onload event fired. Image data for preview ready.');
+                    // Temporarily show the new image for immediate feedback
+                    updateProfilePictureDisplay(e.target.result);
+
+                    const formData = new FormData();
+                    formData.append('profilePicture', file);
+
+                    try {
+                        console.log(`Client (profile.ejs): Sending image data to server via fetch to ${baseUrl}/profile/upload ...`);
+                        const response = await fetch(`${baseUrl}/profile/upload`, {
+                            method: 'POST',
+                            body: formData,
+                        });
+
+                        console.log('Client (profile.ejs): Received response from server, status:', response.status);
+                        const result = await response.json();
+                        console.log('Client (profile.ejs): Parsed server response:', result);
+
+                        if (response.ok && result.success) {
+                            displayMessage(result.message, 'success');
+                            // Update display with the path returned from the server (which is the actual URL)
+                            updateProfilePictureDisplay(result.profilePicture);
+                        } else {
+                            displayMessage(result.message || 'Failed to upload profile picture.', 'error');
+                            // Revert to old picture if upload failed
+                            updateProfilePictureDisplay('<%= user.profilePicture || "" %>');
+                        }
+                    } catch (error) {
+                        console.error('Client (profile.ejs): Error during fetch request for upload:', error);
+                        displayMessage('An unexpected error occurred during upload. Please try again.', 'error');
+                        // Revert to old picture if network/fetch error
+                        updateProfilePictureDisplay('<%= user.profilePicture || "" %>');
+                    } finally {
+                        profileUploadInput.value = ''; // Clear the input
+                    }
+                };
+                reader.onerror = function(e) {
+                    console.error('Client (profile.ejs): FileReader error:', e);
+                    displayMessage('Error reading file. Please try another image.', 'error');
+                    updateProfilePictureDisplay('<%= user.profilePicture || "" %>');
+                    profileUploadInput.value = '';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                console.log('Client (profile.ejs): No file selected (user cancelled or no file).');
+                profileUploadInput.value = '';
+            }
+        });
+
+        // Handle profile details update form submission
+        profileUpdateForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Prevent default form submission
+
+            displayMessage('Updating profile details...', 'info');
+
+            const formData = new FormData(profileUpdateForm);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                console.log('Client (profile.ejs): Sending profile update data:', data);
+                const response = await fetch(`${baseUrl}/profile/update`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                console.log('Client (profile.ejs): Received response from profile update, status:', response.status);
+                const result = await response.json();
+                console.log('Client (profile.ejs): Parsed server response for profile update:', result);
+
+                if (response.ok && result.success) {
+                    displayMessage(result.message, 'success');
+                    // Optionally update the full name in the header without a full page reload
+                    const dashboardHeader = document.querySelector('.dashboard-header h1');
+                    if (dashboardHeader) {
+                        dashboardHeader.textContent = `Welcome back, ${result.user.fullName}!`;
+                    }
+                } else {
+                    displayMessage(result.message || 'Failed to update profile details.', 'error');
+                }
+            } catch (error) {
+                console.error('Client (profile.ejs): Error during profile details update fetch:', error);
+                displayMessage('An unexpected error occurred during profile update. Please try again.', 'error');
+            }
+        });
+    </script>
+
+    <!-- Smartsupp Live Chat script -->
+     <!-- Smartsupp Live Chat script -->
+<<!-- Smartsupp Live Chat script -->
+<script type="text/javascript">
+var _smartsupp = _smartsupp || {};
+_smartsupp.key = 'ba6a5df2d0615c8a2ce3a85521dc1af4083b028c';
+window.smartsupp||(function(d) {
+  var s,c,o=smartsupp=function(){ o._.push(arguments)};o._=[];
+  s=d.getElementsByTagName('script')[0];c=d.createElement('script');
+  c.type='text/javascript';c.charset='utf-8';c.async=true;
+  c.src='https://www.smartsuppchat.com/loader.js?';s.parentNode.insertBefore(c,s);
+})(document);
+</script>
+<noscript> Powered by <a href=“https://www.smartsupp.com” target=“_blank”>Smartsupp</a></noscript>
+    <!-- END Smartsupp Live Chat script -->
+</body>
+</html>

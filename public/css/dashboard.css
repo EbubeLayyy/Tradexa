@@ -1,0 +1,1113 @@
+/* General Body Styles */
+html, body {
+    height: 100%; /* Ensure html and body take full viewport height */
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: "Poppins", sans-serif;
+    background-color: #eef2f6; /* Light background for the overall page */
+    color: #333;
+    box-sizing: border-box; /* Ensure padding is included in element's total width/height */
+}
+
+/* Dashboard Container - Flexbox for layout */
+.dashboard-container {
+    display: flex;
+    min-height: 100vh; /* Full viewport height */
+    transition: all 0.3s ease; /* Smooth transition for sidebar collapse/expand */
+}
+
+/* Sidebar Styles */
+.sidebar {
+    width: 250px; /* Default expanded width */
+    background-color: #03598c; /* Dark blue background */
+    color: #f6f5f3; /* Light text color */
+    padding: 20px;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    transition: width 0.3s ease; /* Smooth transition for width change */
+    flex-shrink: 0; /* Prevent sidebar from shrinking below its width */
+}
+
+/* Logo Styles for Animation */
+.sidebar .logo {
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 28px;
+    font-weight: 700;
+    color: #f6f5f3;
+    cursor: pointer; /* Indicate it's clickable */
+    display: flex; /* Use flex to align text and icon */
+    justify-content: center;
+    align-items: center;
+    height: 50px; /* Fixed height for consistent toggle area */
+    overflow: hidden; /* Hide overflow when text shrinks */
+    position: relative; /* For absolute positioning of icon if needed, though flex works fine */
+}
+
+.sidebar .logo .logo-text {
+    opacity: 1;
+    width: auto; /* Allow text to take natural width */
+    transition: opacity 0.3s ease, width 0.3s ease;
+    white-space: nowrap; /* Prevent text wrapping */
+    position: relative;
+    z-index: 2;
+}
+
+.sidebar .logo .logo-toggle-icon {
+    display: none; /* Hidden by default in expanded state */
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    font-size: 28px; /* Size of the hamburger icon */
+    position: absolute;
+    z-index: 1;
+}
+
+
+.sidebar nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar nav li {
+    margin-bottom: 10px;
+}
+
+.sidebar nav a {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    color: #f6f5f3;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    font-size: 16px;
+}
+
+.sidebar nav a i {
+    margin-right: 15px;
+    font-size: 18px;
+    width: 25px; /* Fixed width for icons to prevent text shifting */
+    text-align: center;
+}
+
+.sidebar nav li.active a,
+.sidebar nav a:hover {
+    background-color: #023e6b; /* Slightly darker blue on hover/active */
+    color: #ffffff;
+}
+
+/* Collapsed Sidebar State */
+.dashboard-container.collapsed .sidebar {
+    width: 80px; /* Collapsed width */
+}
+
+.dashboard-container.collapsed .sidebar .logo {
+    justify-content: center; /* Center the icon */
+    padding: 0;
+}
+
+.dashboard-container.collapsed .sidebar .logo .logo-text {
+    opacity: 0;
+    width: 0; /* Collapse text width */
+    display: none; /* Hide text completely */
+}
+
+.dashboard-container.collapsed .sidebar .logo .logo-toggle-icon {
+    display: block; /* Show hamburger icon */
+    opacity: 1;
+    position: static; /* Let flexbox handle positioning when visible */
+    margin: 0; /* Remove any default margins */
+}
+
+
+.dashboard-container.collapsed .sidebar .nav-text {
+    display: none; /* Hide text labels */
+}
+
+.dashboard-container.collapsed .sidebar nav a {
+    justify-content: center; /* Center icons when text is hidden */
+    padding: 12px 0; /* Adjust padding for collapsed state */
+}
+
+.dashboard-container.collapsed .sidebar nav a i {
+    margin-right: 0; /* Remove margin when text is hidden */
+}
+
+/* Main Content Styles */
+.main-content {
+    flex-grow: 1; /* Allows main content to take up remaining space */
+    padding: 20px 30px;
+    background-color: #ffffff; /* White background for main content area */
+    overflow-y: auto; /* Enable scrolling for content if it overflows */
+    overflow-x: hidden; /* IMPORTANT: Prevent horizontal scrolling within main content */
+}
+
+/* Header Styles */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 30px;
+}
+
+.dashboard-header h1 {
+    font-size: 24px;
+    color: #03598c;
+    margin: 0;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* START: Profile Picture Container and Icon/Image Styles */
+.profile-picture-container {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #f0f0f0; /* Light background for the icon area */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; /* Ensure image/icon stays within bounds */
+    cursor: pointer;
+    border: 2px solid #03598c;
+    position: relative; /* For absolute positioning of icon/image if needed */
+}
+
+/* Corrected selector for the profile icon */
+.profile-picture-container .profile-icon { /* Targets the 'profile-icon' class added in HTML */
+    font-size: 28px; /* Size of the user icon */
+    color: #03598c; /* Color of the user icon */
+    display: block; /* Ensure it's visible by default */
+}
+
+.profile-picture-container .profile-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: none; /* Hidden by default */
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+/* END: Profile Picture Container and Icon/Image Styles */
+
+
+/* Stats Cards Section */
+.stats-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.card {
+    background-color: #f6f5f3; /* Light background for cards */
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    text-align: center;
+    color: #03598c;
+}
+
+.card h3 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #023e6b;
+}
+
+.card p {
+    font-size: 28px;
+    font-weight: 600;
+    color: #03598c;
+}
+
+/* Section Specific Styles */
+.section {
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    margin-bottom: 30px; /* Consistent margin for all sections */
+    color: #333;
+}
+
+.section h2 {
+    font-size: 22px;
+    color: #03598c;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.section p {
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+.btc-address {
+    background-color: #e0f2f7; /* Light blue background for address */
+    padding: 15px;
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    color: #03598c;
+    word-break: break-all; /* Ensures long addresses wrap */
+    margin-top: 15px;
+}
+
+.section form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.section form input[type="text"],
+.section form input[type="number"],
+.section form select { /* Added select to form input styles */
+    padding: 12px 15px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 16px;
+    font-family: "Poppins", sans-serif;
+}
+
+.section form button {
+    background-color: #03598c;
+    color: #f6f5f3;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.section form button:hover {
+    background-color: #023e6b;
+}
+
+.section ul {
+    list-style: none;
+    padding: 0;
+}
+
+.section ul li {
+    background-color: #f9f9f9;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #eee;
+}
+
+/* Chart Container Styling - IMPROVED */
+.chart-container {
+    /* Inherits .section styles for background, padding, shadow, margin-bottom */
+    height: 400px; /* Fixed height for the chart */
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-container canvas {
+    flex-grow: 1; /* Allow canvas to fill available space */
+    width: 100% !important; /* Ensure canvas takes full width of its container */
+    height: 70% !important; /* Ensure canvas takes full height of its container */
+    max-width: 100%; /* Prevent overflow */
+    max-height: 100%; /* Prevent overflow */
+}
+
+/* TradingView Widget Container Styling - NEW/IMPROVED */
+.tradingview-widget-container {
+    /* Inherits .section styles for background, padding, shadow, margin-bottom */
+    margin-top: 20px; /* Add some space above the widget if it follows another section */
+    overflow: hidden; /* Important to contain the widget's iframe */
+    border: 1px solid #e0e0e0; /* Example: subtle border */
+}
+
+.tradingview-widget-container h2 {
+    /* Style for the "Live Market Data" heading */
+    font-size: 22px;
+    color: #03598c;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.tradingview-widget-copyright {
+    margin-top: 15px; /* Space above copyright */
+    font-size: 12px;
+    color: #777;
+    text-align: right; /* Align copyright to the right */
+}
+
+.tradingview-widget-copyright .blue-text {
+    color: #03598c;
+    text-decoration: none;
+}
+.tradingview-widget-copyright .blue-text:hover {
+    text-decoration: underline;
+}
+
+
+/* --- START: Styles from myplans.ejs --- */
+.container { /* This rule is already defined above, ensuring it's responsive */
+    padding: 30px 20px; /* Adjusted padding for smaller screens */
+    box-sizing: border-box;
+}
+.plan-details {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+.plan-card {
+    background-color: #f0f4f8;
+    padding: 20px;
+    border-radius: 10px;
+    flex: 1 1 calc(33.33% - 20px); /* Adjusted for better flex distribution */
+    min-width: 280px; /* Minimum width for responsiveness */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    text-align: left;
+    border: 2px solid transparent; /* Added for plan selection styling */
+    transition: border-color 0.3s ease, transform 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-sizing: border-box;
+}
+.plan-card:hover {
+    border-color: #03598c;
+    transform: translateY(-5px);
+}
+.plan-card h3 {
+    font-size: 20px;
+    color: #03598c;
+    margin-bottom: 10px;
+}
+.plan-card p {
+    font-size: 15px;
+    color: #475569;
+    margin-bottom: 8px;
+    line-height: 1.6; /* Added for better readability */
+}
+.plan-card strong {
+    color: #0f172a;
+}
+.no-plan-message {
+    font-size: 18px;
+    color: #475569;
+    margin-top: 20px;
+    text-align: center; /* Centered for better presentation */
+}
+
+/* Styles for Plan Selection Grid (from chooseplan.ejs, now in myplans.ejs) */
+.plan-selection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+    margin-bottom: 30px;
+}
+.plan-selection-card {
+    background-color: #f0f4f8;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    text-align: left;
+    border: 2px solid transparent;
+    transition: border-color 0.3s ease, transform 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-sizing: border-box;
+}
+.plan-selection-card:hover {
+    border-color: #03598c;
+    transform: translateY(-5px);
+}
+.plan-selection-card h3 {
+    font-size: 24px;
+    color: #03598c;
+    margin-bottom: 15px;
+}
+.plan-selection-card ul {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 25px;
+    flex-grow: 1;
+}
+.plan-selection-card ul li {
+    font-size: 16px;
+    color: #475569;
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+.plan-selection-card ul li strong {
+    color: #0f172a;
+}
+.btn-select-plan {
+    background-color: #03598c;
+    color: #ffffff;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+    width: 100%;
+    display: block;
+    text-decoration: none;
+    text-align: center;
+}
+.btn-select-plan:hover {
+    background-color: #023e6b;
+}
+.btn-back { /* This rule is already defined above */
+    background-color: #03598c;
+    color: #ffffff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+    margin-top: 30px;
+    text-decoration: none;
+    display: inline-block;
+}
+.btn-back:hover {
+    background-color: #023e6b;
+}
+/* --- END: Styles from myplans.ejs --- */
+
+
+/* --- START: Styles from deposit.ejs --- */
+.deposit-container {
+    background-color: #ffffff;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 600px; /* Increased max-width slightly for better layout */
+    text-align: center;
+    box-sizing: border-box;
+}
+.deposit-container h2 {
+    font-size: 28px;
+    margin-bottom: 25px;
+    color: #03598c;
+}
+.deposit-container p {
+    font-size: 16px;
+    margin-bottom: 20px;
+    line-height: 1.6;
+    color: #475569;
+}
+/* Plan Details Display */
+.selected-plan-info {
+    background-color: #e0f2f7;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    text-align: left;
+    border: 1px solid #03598c;
+}
+.selected-plan-info h3 {
+    font-size: 22px;
+    color: #023e6b;
+    margin-bottom: 10px;
+}
+.selected-plan-info p {
+    margin-bottom: 5px;
+    font-size: 16px;
+    color: #0f172a;
+}
+.selected-plan-info strong {
+    color: #03598c;
+}
+
+/* Form Group Styles */
+.form-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #03598c;
+}
+.form-group input[type="number"] {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 16px;
+    color: #0f172a;
+    box-sizing: border-box;
+}
+.form-group input[type="number"]:focus {
+    outline: none;
+    border-color: #03598c;
+    box-shadow: 0 0 0 3px rgba(3, 89, 140, 0.2);
+}
+/* Crypto Options */
+.crypto-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 25px;
+    margin-bottom: 30px;
+}
+.crypto-option {
+    background-color: #f0f4f8;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 15px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+    color: #475569;
+}
+.crypto-option:hover {
+    border-color: #03598c;
+    background-color: #e0f2f7;
+}
+.crypto-option input[type="radio"] {
+    display: none; /* Hide default radio button */
+}
+.crypto-option input[type="radio"]:checked + span {
+    color: #03598c;
+    font-weight: 700;
+}
+.crypto-option input[type="radio"]:checked {
+    border-color: #03598c;
+    background-color: #e0f2f7;
+    box-shadow: 0 0 0 3px rgba(3, 89, 140, 0.2);
+}
+.crypto-option input[type="radio"]:checked + span::before {
+    content: '\2713'; /* Checkmark */
+    display: inline-block;
+    margin-right: 8px;
+    color: #03598c;
+    font-size: 1.2em;
+}
+.btn-submit-deposit {
+    background-color: #03598c;
+    color: #ffffff;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+    width: 100%;
+    margin-top: 20px;
+}
+.btn-submit-deposit:hover {
+    background-color: #023e6b;
+}
+/* --- END: Styles from deposit.ejs --- */
+/* --- START: Styles for Payment Instructions Page (new) --- */
+.payment-instructions-container {
+    background-color: #ffffff;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 650px;
+    text-align: center;
+    box-sizing: border-box;
+}
+.payment-instructions-container h2 {
+    font-size: 30px;
+    margin-bottom: 20px;
+    color: #03598c;
+}
+.payment-instructions-container p {
+    font-size: 17px;
+    line-height: 1.6;
+    color: #475569;
+    margin-bottom: 15px;
+}
+.payment-details-box {
+    background-color: #e0f2f7;
+    border: 1px solid #03598c;
+    border-radius: 10px;
+    padding: 25px;
+    margin-top: 30px;
+    margin-bottom: 30px;
+    text-align: left;
+}
+.payment-details-box p {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #0f172a;
+}
+.payment-details-box strong {
+    color: #03598c;
+}
+.wallet-address-display {
+    background-color: #f6f5f3;
+    border: 1px dashed #03598c;
+    padding: 15px;
+    border-radius: 8px;
+    word-break: break-all;
+    font-family: 'monospace';
+    font-size: 16px;
+    color: #0f172a;
+    margin-top: 15px;
+    margin-bottom: 20px;
+}
+.copy-address-btn {
+    background-color: #03598c;
+    color: #ffffff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+    margin-top: 10px;
+}
+.copy-address-btn:hover {
+    background-color: #023e6b;
+}
+.important-note {
+    font-size: 15px;
+    color: #d32f2f; /* Red for important notes */
+    margin-top: 25px;
+    font-weight: 500;
+}
+/* --- END: Styles for Payment Instructions Page --- */
+/* Message Styles (common for all pages) */
+.message {
+    margin-top: 20px;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 20px;
+}
+.error {
+    background-color: #ffe0e0;
+    color: #d32f2f;
+    border: 1px solid #d32f2f;
+}
+.success {
+    background-color: #e0ffe0;
+    color: #388e3c;
+    border: 1px solid #388e3c;
+}
+.back-link {
+    display: block;
+    margin-top: 25px;
+    color: #03598c;
+    text-decoration: none;
+    font-size: 15px;
+    transition: color 0.3s ease;
+}
+.back-link:hover {
+    color: #023e6b;
+}
+.btn-top-up{
+    text-decoration: none;
+    color: #023e6b;
+    font-size: 20px;
+    background-color: #eee;
+    border-radius: 10px;
+    padding: 5px;
+    transition: background-color 0.3s ease;
+}
+.btn-top-up:hover{
+    text-decoration: none;
+    color: #ffffff;
+    background-color: #023e6b;
+}
+/* --- START: Transaction History Specific Styles --- */
+.transactions-section {
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    margin-bottom: 30px;
+    color: #333;
+    /* Removed overflow-x: auto from here, moved to .transactions-table-container */
+}
+.transactions-table-container {
+    width: 100%;
+    overflow-x: auto; /* Enable horizontal scrolling for table on small screens */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    border-radius: 8px; /* Apply border-radius to the container for overflow */
+    border: 1px solid #e0e0e0; /* Subtle border around the whole table */
+}
+.transactions-section table {
+    width: 100%;
+    min-width: 700px; /* Ensure table is wide enough to trigger scroll on small screens */
+    border-collapse: collapse;
+    margin: 0; /* Remove default margin */
+    font-size: 15px;
+}
+.transactions-section th,
+.transactions-section td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+    vertical-align: middle; /* Align content vertically in middle */
+}
+.transactions-section thead th {
+    background-color: #03598c;
+    color: #ffffff;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #023e6b;
+    position: sticky; /* Sticky header for horizontal scroll */
+    top: 0;
+    z-index: 10; /* Ensure header stays on top */
+}
+.transactions-section tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+.transactions-section tbody tr:hover {
+    background-color: #eef2f6;
+    cursor: default; /* Changed to default as rows aren't clickable for action */
+}
+/* Status Badges */
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: capitalize;
+    white-space: nowrap;
+}
+.status-pending {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+.status-confirmed {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+.status-rejected {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+.no-transactions-message {
+    text-align: center;
+    font-size: 1.1em;
+    color: #6c757d;
+    padding: 30px 0;
+    border: 1px dashed #ced4da;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+.no-transactions-message a {
+    color: #03598c;
+    text-decoration: none;
+    font-weight: 600;
+}
+.no-transactions-message a:hover {
+    text-decoration: underline;
+}
+/* --- END: Transaction History Specific Styles --- */
+/* --- START: Custom Message Popup for Copy Action --- */
+.copy-message-popup {
+    position: fixed;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #4CAF50; /* Green */
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    font-size: 14px;
+    white-space: nowrap; /* Prevent text wrap */
+}
+/* --- END: Custom Message Popup --- */
+/* --- START: Modal Styles (Integrated) --- */
+/* The modal is initially hidden by JS, but this ensures it's centered when shown */
+.modal {
+    display: none; /* Hidden by default, shown by JS */
+    position: fixed; /* Stay in place */
+    z-index: 100; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+    justify-content: center; /* Center horizontally */
+    align-items: center; /* Center vertically */
+}
+.modal-content {
+    background-color: #fefefe;
+    padding: 20px;
+    border-radius: 0.75rem; /* Using rem for consistency */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    width: 90%; /* Responsive width */
+    max-width: 500px; /* Max width for larger screens */
+    text-align: center;
+    position: relative; /* For close button positioning */
+}
+.close-button {
+    color: #aaa;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.close-button:hover,
+.close-button:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+/* --- END: Modal Styles --- */
+/* Responsive adjustments (combined and refined) */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 80px; /* Force collapsed on smaller screens */
+        padding: 15px 0;
+    }
+    /* Force logo to show icon on small screens */
+    .sidebar .logo .logo-text {
+        opacity: 0;
+        width: 0;
+        display: none;
+    }
+    .sidebar .logo .logo-toggle-icon {
+        display: block;
+        opacity: 1;
+        position: static;
+        margin: 0;
+    }
+    .sidebar nav a {
+        justify-content: center;
+        padding: 10px 0;
+    }
+    .sidebar nav a i {
+        margin-right: 0;
+    }
+    .sidebar .nav-text {
+        display: none;
+    }
+    .main-content {
+        padding: 15px;
+        /* REMOVED: margin-left: 80px; */ /* This was the cause of the extra gap */
+    }
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    .dashboard-header h1 {
+        font-size: 20px;
+    }
+    /* My Plans and Deposit specific adjustments */
+    h2 {
+        font-size: 28px; /* Slightly smaller heading on mobile */
+    }
+    .container, .deposit-container, .payment-instructions-container, .transactions-section, .withdraw-container, .section { /* Apply to all main containers including .section for withdrawal form */
+        padding: 20px 15px; /* More padding on smaller screens */
+        width: 100%;
+        max-width: none; /* Remove any max-width that might constrain on small screens */
+        box-sizing: border-box; /* Re-confirm box-sizing */
+    }
+    .plan-card, .plan-selection-card {
+        flex: 1 1 100%; /* Stack columns on smaller screens */
+        min-width: unset; /* Remove min-width to allow full flexibility */
+    }
+    .plan-details, .plan-selection-grid {
+        gap: 15px; /* Slightly smaller gap on mobile */
+    }
+    .crypto-options {
+        flex-direction: column; /* Stack crypto options vertically */
+        align-items: stretch;
+    }
+    .crypto-option {
+        justify-content: center;
+        padding: 12px 15px;
+    }
+    /* --- Specific Withdrawal Page Adjustments for small screens --- */
+    .stats-cards {
+        grid-template-columns: 1fr; /* Force balance cards to stack vertically */
+        gap: 15px; /* Adjust gap for stacking */
+    }
+    .card {
+        padding: 20px; /* Slightly less padding for cards on mobile */
+    }
+    .card h3 {
+        font-size: 16px; /* Smaller font for card titles */
+    }
+    .card p {
+        font-size: 24px; /* Smaller font for card values */
+    }
+    /* Ensure form inputs and select elements are 100% width and fit */
+    .section form input[type="text"],
+    .section form input[type="number"],
+    .section form select {
+        width: 100%;
+        box-sizing: border-box;
+    }
+    /* --- END Specific Withdrawal Page Adjustments --- */
+    /* --- IMPROVED TRANSACTION TABLE RESPONSIVE STYLES --- */
+    .transactions-table-container {
+        overflow-x: auto; /* Ensure horizontal scrolling is main fallback */
+        -webkit-overflow-scrolling: touch;
+        border: none; /* Remove outer border if inner rows are card-like */
+        box-shadow: none; /* Remove outer shadow */
+    }
+    .transactions-section table {
+        width: 100%; /* Allow table to shrink/grow within its container */
+        min-width: auto; /* Remove fixed min-width to allow stacking */
+        border-collapse: separate; /* Allow border-radius on rows */
+        border-spacing: 0 10px; /* Space between rows (cards) */
+    }
+    .transactions-section thead {
+        display: none; /* Hide the entire header on small screens */
+    }
+    .transactions-section tbody tr {
+        background-color: #ffffff;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        margin-bottom: 15px; /* Space between "cards" */
+        display: grid; /* Use grid for better control over inner elements */
+        grid-template-columns: 1fr 1fr; /* Two columns for label and value */
+        gap: 5px 10px; /* Gap between grid items */
+        padding: 15px; /* Padding inside each row-card */
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05); /* Subtle shadow for each card */
+    }
+    .transactions-section tbody tr:nth-child(even) {
+        background-color: #ffffff; /* Remove zebra striping for card view */
+    }
+    .transactions-section tbody tr:hover {
+        background-color: #f8f8f8; /* Subtle hover effect for cards */
+    }
+    .transactions-section td {
+        border-bottom: none; /* No bottom border for individual cells */
+        padding: 5px 0; /* Adjust padding for grid items */
+        text-align: left; /* Align text to left */
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap; /* Allow content to wrap */
+    }
+    .transactions-section td::before {
+        content: attr(data-label) ":"; /* Add colon for clarity */
+        font-weight: 600;
+        color: #03598c;
+        margin-right: 8px; /* Space between label and value */
+        flex-shrink: 0; /* Prevent label from shrinking */
+        width: auto; /* Let content determine width */
+        position: static; /* Remove absolute positioning */
+        padding-right: 0;
+        text-align: left;
+    }
+    /* Specific adjustments for status badge to ensure it's on its own line or clearly visible */
+    .transactions-section td[data-label="Status"] {
+        grid-column: 1 / -1; /* Make status span full width */
+        justify-content: center; /* Center the status badge */
+        padding-top: 10px;
+        border-top: 1px dashed #e0e0e0; /* Separator for status */
+        margin-top: 5px;
+    }
+    .transactions-section td[data-label="Status"]::before {
+        display: none; /* Hide "Status:" label as badge is self-explanatory */
+    }
+}
+
+@media (max-width: 480px) {
+    h2 {
+        font-size: 24px;
+    }
+    .plan-selection-card h3 {
+        font-size: 20px;
+    }
+    .plan-selection-card ul li {
+        font-size: 14px;
+    }
+    .btn-select-plan {
+        font-size: 16px;
+        padding: 10px 20px;
+    }
+    .selected-plan-info h3 {
+        font-size: 18px;
+    }
+    .selected-plan-info p {
+        font-size: 14px;
+    }
+    .form-group label {
+        font-size: 14px;
+    }
+    .form-group input[type="number"] {
+        font-size: 14px;
+        padding: 10px;
+    }
+    .btn-submit-deposit {
+        font-size: 16px;
+        padding: 10px 20px;
+    }
+    /* Payment Instructions specific adjustments for small screens */
+    .payment-instructions-container h2 {
+        font-size: 26px;
+    }
+    .payment-instructions-container p {
+        font-size: 15px;
+    }
+    .payment-details-box p {
+        font-size: 16px;
+    }
+    .wallet-address-display {
+        font-size: 14px;
+        padding: 12px;
+    }
+    .copy-address-btn {
+        font-size: 14px;
+        padding: 8px 15px;
+    }
+    .important-note {
+        font-size: 13px;
+    }
+    /* Specific adjustment for TradingView widget container on very small screens */
+    .tradingview-widget-container {
+        width: 100%; /* Ensure it takes full width */
+        max-width: 100%; /* Prevent it from exceeding 100% */
+        margin-left: auto; /* Center it */
+        margin-right: auto; /* Center it */
+        box-sizing: border-box; /* Include padding/border in total width */
+    }
+}

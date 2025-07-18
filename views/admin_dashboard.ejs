@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/dashboard.css"> <!-- IMPORTANT: Link dashboard.css for base styles -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/boxicons/2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar (Admin specific, simplified) -->
+        <aside class="sidebar">
+            <h2 class="logo" id="sidebarLogo">
+                <span class="logo-text">Tradexa</span>
+                <i class="fas fa-bars logo-toggle-icon"></i>
+            </h2>
+            <nav>
+                <ul>
+                    <li class="<%= currentPage === 'admin-dashboard' ? 'active' : '' %>">
+                        <a href="/admin/dashboard"><i class="fas fa-tachometer-alt"></i> <span class="nav-text">Dashboard</span></a>
+                    </li>
+                    <li>
+                        <a href="/admin/logout"><i class="fas fa-sign-out-alt"></i> <span class="nav-text">Logout</span></a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="dashboard-header">
+                <h1>Admin Dashboard</h1>
+                <div class="user-info">
+                    <span>Hello, Admin</span>
+                    <div class="profile-picture-container">
+                        <i class="fas fa-user-shield profile-icon"></i> <!-- Admin icon -->
+                    </div>
+                </div>
+            </header>
+
+            <% if (query.error) { %>
+                <div class="message error"><%= query.error %></div>
+            <% } %>
+            <% if (query.success) { %>
+                <div class="message success"><%= query.success %></div>
+            <% } %>
+            <% if (error) { %>
+                <div class="message error"><%= error %></div>
+            <% } %>
+
+            <section class="transactions-section"> <!-- Using general transactions-section class -->
+                <h2>Pending Deposits & Top-Ups (<%= pendingTransactions.length %>)</h2>
+                <% if (pendingTransactions.length > 0) { %>
+                    <div class="transactions-table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>User</th>
+                                    <th>Email</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Currency</th>
+                                    <th>Plan</th>
+                                    <th>Wallet Address</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% pendingTransactions.forEach(transaction => { %>
+                                    <tr>
+                                        <td data-label="Date"><%= new Date(transaction.createdAt).toLocaleString() %></td>
+                                        <td data-label="User"><%= transaction.userId ? transaction.userId.fullName : 'N/A' %></td>
+                                        <td data-label="Email"><%= transaction.userId ? transaction.userId.email : 'N/A' %></td>
+                                        <td data-label="Type"><%= transaction.type %></td>
+                                        <td data-label="Amount">$<%= transaction.amount.toFixed(2) %></td>
+                                        <td data-label="Currency"><%= transaction.currency %></td>
+                                        <td data-label="Plan"><%= transaction.planName || 'N/A' %></td>
+                                        <td data-label="Wallet Address" class="wallet-address-cell">
+                                            <span class="address-text"><%= transaction.walletAddressUsed %></span>
+                                            <button class="copy-address-btn-sm" onclick="copyAddress('<%= transaction.walletAddressUsed %>')">Copy</button>
+                                        </td>
+                                        <td data-label="Action">
+                                            <form action="/admin/transaction-action" method="POST">
+                                                <input type="hidden" name="transactionId" value="<%= transaction._id %>">
+                                                <input type="hidden" name="action" value="confirm">
+                                                <button type="submit" class="btn-action confirm">Confirm</button>
+                                            </form>
+                                            <form action="/admin/transaction-action" method="POST">
+                                                <input type="hidden" name="transactionId" value="<%= transaction._id %>">
+                                                <input type="hidden" name="action" value="reject">
+                                                <button type="submit" class="btn-action reject">Reject</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <p class="no-transactions-message">No pending transactions to review.</p>
+                <% } %>
+            </section>
+        </main>
+    </div>
+
+    <!-- Common JavaScript for sidebar toggle -->
+    <script>
+        const sidebarLogo = document.getElementById('sidebarLogo');
+        const dashboardContainer = document.querySelector('.dashboard-container');
+
+        if (sidebarLogo && dashboardContainer) {
+            sidebarLogo.addEventListener('click', () => {
+                dashboardContainer.classList.toggle('collapsed');
+            });
+        } else {
+            console.error('Sidebar toggle elements not found. Check HTML IDs/classes.');
+        }
+
+        // Add active class based on current path for admin sidebar
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.sidebar nav ul li a');
+
+            navLinks.forEach(link => {
+                link.closest('li').classList.remove('active'); // Remove active from all first
+                // Check if the link's href matches the current path
+                if (link.getAttribute('href') === currentPath) {
+                    link.closest('li').classList.add('active');
+                }
+                // Special handling for dashboard if it's the root admin path
+                if (currentPath === '/admin/dashboard' && link.getAttribute('href') === '/admin/dashboard') {
+                    link.closest('li').classList.add('active');
+                }
+            });
+        });
+    </script>
+
+    <script>
+        function copyAddress(address) {
+            const tempInput = document.createElement('textarea');
+            tempInput.value = address;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            
+            // Display custom message popup using the CSS class
+            const messageDiv = document.createElement('div');
+            messageDiv.textContent = 'Wallet address copied!';
+            messageDiv.classList.add('copy-message-popup'); // Apply the CSS class
+
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.style.opacity = 1; // Fade in
+            }, 10); 
+            
+            setTimeout(() => {
+                messageDiv.style.opacity = 0; // Fade out
+                messageDiv.addEventListener('transitionend', () => messageDiv.remove()); // Remove after transition
+            }, 3000); 
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Plans - Tradexa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/boxicons/2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <!-- Chart.js for simple graphing (needed for this page) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h2 class="logo" id="sidebarLogo">
+                <span class="logo-text">Tradexa</span>
+                <i class="fas fa-bars logo-toggle-icon"></i>
+            </h2>
+            <nav>
+                <ul>
+                    <li class="<%= currentPage === 'dashboard' ? 'active' : '' %>" data-section="dashboard">
+                    <a href="/dashboard"><i class="fas fa-home"></i> <span class="nav-text">Dashboard</span></a>
+                </li>
+                <li class="<%= currentPage === 'my-plans' ? 'active' : '' %>" data-section="my-plans">
+                    <a href="/my-plans"><i class="fas fa-chart-line"></i> <span class="nav-text">My Plans</span></a>
+                </li>
+                <li class="<%= currentPage === 'deposit' ? 'active' : '' %>" data-section="deposit">
+                    <a href="/deposit"><i class="fas fa-arrow-down"></i> <span class="nav-text">Deposit</span></a>
+                </li>
+                <li class="<%= currentPage === 'withdraw' ? 'active' : '' %>" data-section="withdraw">
+                    <a href="/withdraw"><i class="fas fa-arrow-up"></i> <span class="nav-text">Withdraw</span></a>
+                </li>
+                <li class="<%= currentPage === 'transactions' ? 'active' : '' %>" data-section="transactions">
+                    <a href="/transactions"><i class="fas fa-list"></i> <span class="nav-text">Transactions</span></a>
+                </li>
+                <li class="<%= currentPage === 'profile' ? 'active' : '' %>" data-section="profile">
+                    <a href="#"><i class="fas fa-user"></i> <span class="nav-text">Profile</span></a>
+                </li>
+                <li>
+                    <a href="/logout"><i class="fas fa-sign-out-alt"></i> <span class="nav-text">Logout</span></a>
+                </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="container">
+                <h2>My Investment Plans</h2>
+
+                <% if (error) { %>
+                    <div class="message error"><%= error %></div>
+                <% } %>
+
+                <%
+                    const starterPlanDetails = plans.Starter;
+                    const starterMinActivation = starterPlanDetails.minDeposit; // This is $500
+                %>
+
+                <% if (user.currentPlan === 'None') { %>
+                    <% if (user.pendingStarterDeposit > 0) { %>
+                        <p class="no-plan-message">
+                            You are accumulating funds for the Starter Plan.
+                            You have deposited <strong>$<%= user.pendingStarterDeposit.toFixed(2) %></strong> so far.
+                            Deposit <strong>$<%= (starterMinActivation - user.pendingStarterDeposit).toFixed(2) %></strong> more to activate your Starter Plan!
+                        </p>
+                    <% } else { %>
+                        <p class="no-plan-message">You currently do not have an active investment plan. Choose one below to get started!</p>
+                    <% } %>
+
+                    <div class="plan-selection-grid">
+                        <% Object.keys(plans).forEach(planName => { %>
+                            <% const plan = plans[planName]; %>
+                            <div class="plan-selection-card">
+                                <div>
+                                    <h3><%= planName %> Plan</h3>
+                                    <ul>
+                                        <% if (planName === 'Starter') { %>
+                                            <li><strong>Activation Threshold:</strong> $<%= plan.minDeposit %></li>
+                                            <li><strong>Total Deposit Range:</strong> $<%= plan.minDeposit %> – <%= plan.maxDeposit === Infinity ? 'Unlimited' : '$' + plan.maxDeposit %></li>
+                                            <li><strong>Note:</strong> Deposits below $<%= plan.minDeposit %> accumulate towards activation.</li>
+                                        <% } else { %>
+                                            <li><strong>Minimum Deposit:</strong> $<%= plan.minDeposit %></li>
+                                            <li><strong>Maximum Deposit:</strong> <%= plan.maxDeposit === Infinity ? 'Unlimited' : '$' + plan.maxDeposit %></li>
+                                        <% } %>
+                                        <li><strong>Duration:</strong> <%= plan.durationDays %> Days</li>
+                                        <li><strong>ROI:</strong> <%= (plan.dailyROI * 100).toFixed(0) %>%</li> <!-- Changed from Daily ROI -->
+                                        <li><strong>Withdrawals:</strong> <% if (planName === 'Starter') { %>Instant after <%= plan.withdrawalAfterDays %> days<% } else if (planName === 'Growth') { %>Instant after plan ends<% } else if (planName === 'Elite') { %>Anytime after <%= plan.withdrawalAfterDays %> days<% } %></li>
+                                    </ul>
+                                </div>
+                                <form action="/select-plan" method="POST">
+                                    <input type="hidden" name="planName" value="<%= planName %>">
+                                    <button type="submit" class="btn-select-plan">Select <%= planName %> Plan</button>
+                                </form>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } else { %>
+                    <div class="plan-details">
+                        <div class="plan-card">
+                            <h3>Current Plan</h3>
+                            <p><strong>Plan:</strong> <%= user.currentPlan %></p>
+                            <p><strong>Initial Investment:</strong> $<%= user.initialInvestment.toFixed(2) %></p>
+                            <p><strong>ROI:</strong> <%= (user.dailyROI * 100).toFixed(0) %>%</p> <!-- Changed from Daily ROI -->
+                        </div>
+                        <div class="plan-card">
+                            <h3>Plan Duration</h3>
+                            <p><strong>Start Date:</strong> <%= new Date(user.planStartDate).toLocaleDateString() %></p>
+                            <p><strong>End Date:</strong> <%= new Date(user.planEndDate).toLocaleDateString() %></p>
+                            <p><strong>Days Remaining:</strong> <%= Math.max(0, Math.ceil((user.planEndDate - new Date()) / (1000 * 60 * 60 * 24))) %></p>
+                        </div>
+                        <div class="plan-card">
+                            <h3>Current Value</h3>
+                            <p><strong>Current Balance:</strong> $<%= user.balance.toFixed(2) %></p>
+                            <p><strong>Projected Value:</strong> $<%= currentProjectedValue %></p>
+                            <p><strong>Profit/Loss:</strong> $<%= (currentProjectedValue - user.initialInvestment).toFixed(2) %></p>
+                            <% if (planDetails) { %>
+                                <p><strong>Withdrawal Available After:</strong> <%= new Date(user.planStartDate.getTime() + planDetails.withdrawalAfterDays * 24 * 60 * 60 * 1000).toLocaleDateString() %></p>
+                            <% } %>
+                        </div>
+                    </div>
+
+                    <div class="chart-section">
+                        <h3>Investment Growth</h3>
+                        <div class="chart-container">
+                            <canvas id="investmentChart"></canvas>
+                        </div>
+                    </div>
+                    <section class="action-buttons">
+                        <a href="/deposit" class="btn-top-up">Top Up Current Plan</a>
+                    </section>
+                <% } %>
+
+                <a href="/dashboard" class="btn-back">Back to Dashboard</a>
+            </div>
+        </main>
+    </div>
+
+    <!-- Common JavaScript for sidebar toggle -->
+    <script>
+        const sidebarLogo = document.getElementById('sidebarLogo');
+        const dashboardContainer = document.querySelector('.dashboard-container');
+
+        sidebarLogo.addEventListener('click', () => {
+            dashboardContainer.classList.toggle('collapsed');
+        });
+
+        // Keep active state on page refresh based on current URL
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.sidebar nav ul li a');
+
+            navLinks.forEach(link => {
+                link.closest('li').classList.remove('active'); // Remove existing active classes
+
+                // Add active class if href matches current path
+                if (link.getAttribute('href') === currentPath) {
+                    link.closest('li').classList.add('active');
+                }
+            });
+        });
+    </script>
+
+    <script>
+        // Only initialize chart if user has an active plan and chartData is available
+        <% if (user.currentPlan !== 'None' && chartData) { %>
+            const chartData = JSON.parse('<%- chartData %>');
+
+            if (chartData && chartData.length > 0) {
+                const labels = chartData.map(data => data.date);
+                const values = chartData.map(data => data.value);
+
+                const ctx = document.getElementById('investmentChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Investment Value ($)',
+                            data: values,
+                            borderColor: '#03598c',
+                            backgroundColor: 'rgba(3, 89, 140, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                type: 'category',
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Value ($)'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                            }
+                        }
+                    }
+                });
+            }
+        <% } %>
+    </script>
+         <!-- Smartsupp Live Chat script -->
+<!-- Smartsupp Live Chat script -->
+<script type="text/javascript">
+var _smartsupp = _smartsupp || {};
+_smartsupp.key = 'ba6a5df2d0615c8a2ce3a85521dc1af4083b028c';
+window.smartsupp||(function(d) {
+  var s,c,o=smartsupp=function(){ o._.push(arguments)};o._=[];
+  s=d.getElementsByTagName('script')[0];c=d.createElement('script');
+  c.type='text/javascript';c.charset='utf-8';c.async=true;
+  c.src='https://www.smartsuppchat.com/loader.js?';s.parentNode.insertBefore(c,s);
+})(document);
+</script>
+<noscript> Powered by <a href=“https://www.smartsupp.com” target=“_blank”>Smartsupp</a></noscript>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Tradexa</title>
+    <link rel="stylesheet" href="css/login.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+      xintegrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- UPDATED: top-section now contains the logo -->
+    <section class="top-section">
+      <a href="/" class="tradexa-logo">Tradexa</a>
+    </section>
+
+    <section class="login-form-section">
+      <!-- MOVED: Login heading and paragraph are now inside the form section -->
+      <h1 class="form-title">Login</h1>
+      <p class="form-description">Hello there, login and trade with the best.</p>
+
+      <form class="login-form" action="/login" method="POST">
+        <!-- Display error message if passed from the server -->
+        <% if (error) { %>
+        <p style="color: red; text-align: center; margin-bottom: 15px;"><%= error %></p>
+        <% } %>
+        <!-- Display success message if passed from the server (e.g., after signup) -->
+        <% if (success) { %>
+        <p style="color: green; text-align: center; margin-bottom: 15px;"><%= success %></p>
+        <% } %>
+
+        <div class="form-group">
+          <i class="fas fa-envelope"></i>
+          <input type="email" placeholder="Email Address" name="email" required />
+        </div>
+
+        <div class="form-group password-group">
+          <i class="fas fa-lock"></i>
+          <input type="password" placeholder="Password" name="password" id="passwordInput" required />
+          <i class="fas fa-eye password-toggle-icon" id="passwordToggle"></i>
+        </div>
+
+        <div class="form-check">
+          <label>
+            <input type="checkbox" name="rememberMe" />
+            Remember me
+          </label>
+        </div>
+
+        <button type="submit" class="login-btn">Login</button>
+
+        <div class="form-bottom-links">
+          <a href="/forgot-password">Forgot Password?</a>
+          <p>Don't have an account ? <a href="/signup">Sign Up</a></p>
+        </div>
+      </form>
+    </section>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const passwordInput = document.getElementById('passwordInput');
+        const passwordToggle = document.getElementById('passwordToggle');
+
+        if (passwordInput && passwordToggle) {
+          passwordToggle.addEventListener('click', function() {
+            // Toggle the type attribute
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+
+            // Toggle the eye icon class
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+          });
+        }
+      });
+    </script>
+  </body>
+</html>

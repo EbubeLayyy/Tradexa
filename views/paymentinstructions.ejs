@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Instructions - Tradexa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/boxicons/2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h2 class="logo" id="sidebarLogo">
+                <span class="logo-text">Tradexa</span>
+                <i class="fas fa-bars logo-toggle-icon"></i>
+            </h2>
+            <nav>
+                <ul>
+                    <li class="<%= currentPage === 'dashboard' ? 'active' : '' %>" data-section="dashboard">
+              <a href="/dashboard"><i class="fas fa-home"></i> <span class="nav-text">Dashboard</span></a>
+            </li>
+            <li class="<%= currentPage === 'my-plans' ? 'active' : '' %>" data-section="my-plans">
+              <a href="/my-plans"><i class="fas fa-chart-line"></i> <span class="nav-text">My Plans</span></a>
+            </li>
+            <li class="<%= currentPage === 'deposit' ? 'active' : '' %>" data-section="deposit">
+              <a href="/deposit"><i class="fas fa-arrow-down"></i> <span class="nav-text">Deposit</span></a>
+            </li>
+            <li class="<%= currentPage === 'withdraw' ? 'active' : '' %>" data-section="withdraw">
+              <a href="/withdraw"><i class="fas fa-arrow-up"></i> <span class="nav-text">Withdraw</span></a>
+            </li>
+            <li class="<%= currentPage === 'transactions' ? 'active' : '' %>" data-section="transactions">
+              <a href="/transactions"><i class="fas fa-list"></i> <span class="nav-text">Transactions</span></a>
+            </li>
+            <li class="<%= currentPage === 'profile' ? 'active' : '' %>" data-section="profile">
+              <a href="#"><i class="fas fa-user"></i> <span class="nav-text">Profile</span></a>
+            </li>
+            <li>
+              <a href="/logout"><i class="fas fa-sign-out-alt"></i> <span class="nav-text">Logout</span></a>
+            </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="payment-instructions-container">
+                <h2>Payment Instructions</h2>
+                <p>Your deposit request for the <strong><%= plan %> Plan</strong> has been received. Please complete your payment using the details below.</p>
+                <p><strong>Important:</strong> Your plan has been provisionally activated. To ensure your investment continues to grow, please send the exact amount to the provided wallet address. Your plan will be fully confirmed by our team once payment is received and verified.</p>
+
+                <div class="payment-details-box">
+                    <p><strong>Amount to Send:</strong> $<%= amount %></p>
+                    <p><strong>Currency:</strong> <%= currency %></p>
+                    <p><strong>Wallet Address:</strong></p>
+                    <div class="wallet-address-display" id="walletAddressDisplay"><%= address %></div>
+                    <button class="copy-address-btn" onclick="copyAddress()">Copy Address</button>
+                </div>
+
+                <p class="important-note">Please send the EXACT amount specified above to the wallet address. Sending an incorrect amount or a different cryptocurrency may result in delays or loss of funds.</p>
+                <p class="important-note">Payments are manually verified by our team. Please allow some time for your transaction to be confirmed. If you have any issues, please contact support.</p>
+
+                <a href="/dashboard" class="btn-back">Back to Dashboard</a>
+            </div>
+        </main>
+    </div>
+
+    <!-- Common JavaScript for sidebar toggle -->
+    <script>
+        const sidebarLogo = document.getElementById('sidebarLogo');
+        const dashboardContainer = document.querySelector('.dashboard-container');
+
+        sidebarLogo.addEventListener('click', () => {
+            dashboardContainer.classList.toggle('collapsed');
+        });
+
+        // Keep active state on page refresh based on current URL
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.sidebar nav ul li a');
+
+            navLinks.forEach(link => {
+                link.closest('li').classList.remove('active'); // Remove existing active classes
+
+                // Add active class if href matches current path
+                if (link.getAttribute('href') === currentPath) {
+                    link.closest('li').classList.add('active');
+                }
+            });
+        });
+    </script>
+
+    <script>
+        function copyAddress() {
+            const addressText = document.getElementById('walletAddressDisplay').textContent;
+            const tempInput = document.createElement('textarea');
+            tempInput.value = addressText;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            alert('Wallet address copied to clipboard!'); // Using alert for simplicity as per previous instructions
+        }
+    </script>
+    <!-- Smartsupp Live Chat script -->
+<script type="text/javascript">
+var _smartsupp = _smartsupp || {};
+_smartsupp.key = 'ba6a5df2d0615c8a2ce3a85521dc1af4083b028c';
+window.smartsupp||(function(d) {
+  var s,c,o=smartsupp=function(){ o._.push(arguments)};o._=[];
+  s=d.getElementsByTagName('script')[0];c=d.createElement('script');
+  c.type='text/javascript';c.charset='utf-8';c.async=true;
+  c.src='https://www.smartsuppchat.com/loader.js?';s.parentNode.insertBefore(c,s);
+})(document);
+</script>
+<noscript> Powered by <a href=“https://www.smartsupp.com” target=“_blank”>Smartsupp</a></noscript>
+</body>
+</html>

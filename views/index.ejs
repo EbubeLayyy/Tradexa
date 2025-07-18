@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="icon" type="image/x-icon" href="./images/favicon.ico" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+      xintegrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      rel="stylesheet"
+    />
+    <title>Tradexa</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <!-- Loading Screen Overlay -->
+    <div id="loadingScreen" class="loading-overlay">
+      <div class="loading-container">
+        <div class="logo-circle">
+          <!-- Replace this with your actual logo -->
+          <img src="./images/main logo.jpg" alt="Logo" class="logo" />
+        </div>
+      </div>
+    </div>
+
+    <div id="mainContent">
+      <nav class="nav-links">
+        <div class="logo">
+          <img src="./images/main logo.jpg" alt="Tradexa Logo" />
+        </div>
+
+        <ul class="nav-menu">
+          <li><a href="#home">Home</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#plans">Plans</a></li>
+          <li><a href="#testimonials">Testimonials</a></li>
+          <li><a href="#about">About us</a></li>
+          <li><a href="#FAQs">FAQs</a></li>
+
+          <li class="mobile-auth-buttons-wrapper">
+            <div class="auth-buttons mobile-only">
+              <a href="/login" class="login-button">Login</a>
+              <a href="/signup" class="signup-button">Sign Up</a>
+            </div>
+          </li>
+        </ul>
+
+        <div class="auth-buttons">
+          <a href="/login" class="login-button">Login</a>
+          <a href="/signup" class="signup-button">Sign Up</a>
+        </div>
+
+        <div class="menu-toggle">
+          <!-- Both icons are present, CSS will control their visibility and animation -->
+          <i class="fas fa-bars" id="menu"></i>
+          <i class="fas fa-times" id="close"></i>
+        </div>
+      </nav>
+
+      <section class="hero" id="home">
+        <div class="hero-background-images">
+          <div class="bg-image"></div>
+          <div class="bg-image"></div>
+        </div>
+
+        <div class="hero-content">
+          <h1>
+            Trade smarter. <br />
+            Grow faster.
+          </h1>
+          <p>
+            Join thousands using Tradexa to <br />
+            invest with confidence in real time.
+          </p>
+          <div class="hero-buttons">
+            <a href="#plans" class="explore-button">Explore Plans</a>
+            <a href="/signup" class="signup-btn">Get Started</a>
+          </div>
+
+          <div class="trusted-section">
+            <p>Trusted by over 500,000+ investors</p>
+            <div class="trusted-logos">
+              <img src="./images/binance.png" alt="binance" />
+              <img src="./images/bitcoin.png" alt="bitcoin" />
+              <img src="./images/solana.png" alt="solana" />
+              <img src="./images/usdt.png" alt="usdt" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="crypto-ticker-section">
+        <!-- TradingView Widget BEGIN -->
+<div class="tradingview-widget-container">
+  <div class="tradingview-widget-container__widget"></div>
+  <!-- <div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank"><span class="blue-text">Track all markets on TradingView</span></a></div> -->
+  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+  {
+  "symbols": [
+    {
+      "proName": "FOREXCOM:SPXUSD",
+      "title": "S&P 500 Index"
+    },
+    {
+      "proName": "FOREXCOM:NSXUSD",
+      "title": "US 100 Cash CFD"
+    },
+    {
+      "proName": "FX_IDC:EURUSD",
+      "title": "EUR to USD"
+    },
+    {
+      "proName": "BITSTAMP:BTCUSD",
+      "title": "Bitcoin"
+    },
+    {
+      "proName": "BITSTAMP:ETHUSD",
+      "title": "Ethereum"
+    },
+    {
+      "proName": "BINANCE:ETHUSDT",
+      "title": ""
+    },
+    {
+      "proName": "BINANCE:ETHUSD",
+      "title": ""
+    }
+  ],
+  "colorTheme": "light",
+  "locale": "en",
+  "largeChartUrl": "",
+  "isTransparent": false,
+  "showSymbolLogo": true,
+  "displayMode": "adaptive"
+}
+  </script>
+</div>
+<!-- TradingView Widget END -->
+      </section>
+
+      <section class="how-it-works scroll-reveal" id="features">
+        <h2>How Tradexa Works</h2>
+        <div class="steps-box">
+          <div class="step">
+            <img src="./images/deposit.png" alt="Deposit" />
+            <h3>Deposit</h3>
+            <p>
+              Send bitcoin to your personal trading wallet, generated by the
+              platform.
+            </p>
+          </div>
+
+          <div class="step">
+            <img src="./images/profit.png" alt="Profit" />
+            <h3>Get Profit</h3>
+            <p>
+              Earn returns on investments. With our professional team of
+              traders, you are guaranteed steady earnings.
+            </p>
+          </div>
+
+          <div class="step">
+            <img src="./images/withdrawal.png" alt="Withdraw" />
+            <h3>Withdraw</h3>
+            <p>
+              All withdrawals are processed instantly after they are requested,
+              no delays.
+            </p>
+          </div>
+
+          <div class="step">
+            <img src="./images/performance.png" alt="performance" />
+            <h3>Track Performance</h3>
+            <p>
+              Access real time trading insights and monitor how your investments
+              are growing.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="why-choose-timeline scroll-reveal">
+        <h2>Why Choose Tradexa</h2>
+        <div class="timeline">
+          <div class="timeline-step">
+            <div class="icon-circle">
+              <img src="./images/cyber-security.png" alt="Secure" />
+            </div>
+            <div class="step-content">
+              <h3>Secure & Reliable</h3>
+              <p>
+                Your funds are protected with advanced encryption and wallet
+                based control.
+              </p>
+            </div>
+          </div>
+
+          <div class="timeline-step">
+            <div class="icon-circle">
+              <img src="./images/financial-profit.png" alt="Growth" />
+            </div>
+            <div class="step-content">
+              <h3>Real-Time Growth</h3>
+              <p>
+                Monitor your portfolio and track performance in real time with
+                transparent analytics.
+              </p>
+            </div>
+          </div>
+
+          <div class="timeline-step">
+            <div class="icon-circle">
+              <img src="./images/24-hours-service.png" alt="Support" />
+            </div>
+            <div class="step-content">
+              <h3>24/7 Support</h3>
+              <p>
+                Our dedicated team is here for you anytime you need help, day or
+                night.
+              </p>
+            </div>
+          </div>
+
+          <div class="timeline-step">
+            <div class="icon-circle">
+              <img src="./images/hand.png" alt="fees" />
+            </div>
+            <div class="step-content">
+              <h3>Transparent Fees</h3>
+              <p>
+                No hidden charges. We keep it simple and fair so you can focus
+                on growing your investments.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="testimonial-section scroll-reveal" id="testimonials">
+        <h2>Why They Believe in Us</h2>
+        <div class="testimonial-slider">
+          <div class="testimonial testimonial-active">
+            <img
+              src="https://randomuser.me/api/portraits/men/22.jpg"
+              alt="Person 1"
+            />
+            <div class="stars">
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+            </div>
+            <p>
+              "Tradexa made investing so simple. I get real returns, fast
+              withdrawals, and amazing support".
+            </p>
+            <h4>Ethan Carter</h4>
+          </div>
+
+          <div class="testimonial">
+            <img
+              src="https://randomuser.me/api/portraits/men/72.jpg"
+              alt="Person 2"
+            />
+            <div class="stars">
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+            </div>
+            <p>
+              "I've tried so many platforms, but Tradexa actually delivers on
+              its promises. I'm staying for the long term".
+            </p>
+            <h4>Logan Mitchell</h4>
+          </div>
+
+          <div class="testimonial">
+            <img
+              src="https://randomuser.me/api/portraits/men/45.jpg"
+              alt="Person 3"
+            />
+            <div class="stars">
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+            </div>
+            <p>
+              "My portfolio grew by 30% in 3 months. Transparent fees and
+              real-time tracking are game changers".
+            </p>
+            <h4>Nathan Scott</h4>
+          </div>
+
+          <div class="testimonial">
+            <img
+              src="https://randomuser.me/api/portraits/women/61.jpg"
+              alt="Person 4"
+            />
+            <div class="stars">
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+            </div>
+            <p>
+              "Reliable platform with quick payouts. Customer support is
+              excellent and always available".
+            </p>
+            <h4>Ava Bennett</h4>
+          </div>
+
+          <div class="testimonial">
+            <img
+              src="https://randomuser.me/api/portraits/women/13.jpg"
+              alt="Person 5"
+            />
+            <div class="stars">
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+            </div>
+            <p>
+              "I love the user dashboard. Everything is organized, and i feel in
+              control of my trades".
+            </p>
+            <h4>Chloe Harper</h4>
+          </div>
+
+          <div class="testimonial">
+            <img
+              src="https://randomuser.me/api/portraits/women/1.jpg"
+              alt="Person 6"
+            />
+            <div class="stars">
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+            </div>
+            <p>
+              "Tradexa is the first platform that actually keeps its words. I
+              recommend it to every new investor".
+            </p>
+            <h4>Emily Morgan</h4>
+          </div>
+        </div>
+        <button class="slider-arrow prev-arrow">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="slider-arrow next-arrow">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </section>
+
+      <section class="plans-section scroll-reveal" id="plans">
+        <h2>Choose Your Investment Plan</h2>
+        <p>Flexible plans built for investors at every level.</p>
+        <div class="plans-grid">
+          <div class="plan-card">
+            <h3>Starter</h3>
+            <p class="price-range">$500 – $10,000</p>
+            <ul>
+              <li>Duration: 4 Days</li>
+              <li>Withdrawals: Instant after maturity</li>
+              <li>ROI: 20%</li>
+            </ul>
+            <a href="/signup" class="btn-plan">Sign Up</a>
+          </div>
+
+          <div class="plan-card">
+            <h3>Growth</h3>
+            <p class="price-range">$10,000 – $25,000</p>
+            <ul>
+              <li>Duration: 4 Days</li>
+              <li>Withdrawals: Instant after maturity</li>
+              <li>ROI: 40%</li>
+            </ul>
+            <a href="/signup" class="btn-plan">Sign Up</a>
+          </div>
+
+          <div class="plan-card">
+            <h3>Elite</h3>
+            <p class="price-range">$25,000 – Unlimited</p>
+            <ul>
+              <li>Duration: 4 Days</li>
+              <li>Withdrawals: Instant after maturity</li>
+              <li>ROI: 60%</li>
+            </ul>
+            <a href="/signup" class="btn-plan">Sign Up</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="about-section" id="about">
+        <div class="about-container">
+          <div class="about-text">
+            <h2>About Tradexa</h2>
+            <p>
+              Tradexa is a trusted name in crypto investment, known for
+              delivering consistent results with integrity and innovation. Built
+              by professionals and backed by proven strategies, we help
+              investors grow their crypto assets without stress or guesswork.
+            </p>
+            <p>
+              We’ve been recognized with multiple industry awards for
+              transparency, performance, and client satisfaction proving our
+              commitment to doing things right.
+            </p>
+            <p>
+              Our secure platform, expert traders, and instant withdrawal system
+              make investing easy and reliable. Whether you're starting small or
+              going big, Tradexa is where your money works harder.
+            </p>
+            <p>
+              Join thousands of investors worldwide who trust Tradexa to guide
+              them to smarter financial growth.
+            </p>
+          </div>
+          <div class="about-image">
+            <img src="./images/back3.jpg" alt="About Tradexa" />
+          </div>
+        </div>
+      </section>
+
+      <section class="faq-section scroll-reveal" id="FAQs">
+        <h2>Frequently Asked Questions</h2>
+        <div class="faq-container">
+          <div class="faq-item">
+            <button class="faq-question">
+              <span class="text">Is my money safe on Tradexa?</span>
+              <span class="icon">+</span>
+            </button>
+            <div class="faq-answer">
+              <p>
+                Yes. We use multi-layered security, cold storage for crypto, and
+                we’re fully transparent with how your funds are managed.
+              </p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span class="text">How do I withdraw my earnings?</span>
+              <span class="icon">+</span>
+            </button>
+            <div class="faq-answer">
+              <p>
+                You can withdraw anytime your plan allows. Just go to your
+                dashboard and click “Withdraw.” Payouts are instant once
+                approved.
+              </p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span class="text">What’s the minimum I can invest?</span>
+              <span class="icon">+</span>
+            </button>
+            <div class="faq-answer">
+              <p>
+                Our Starter Plan begins at $500. You can pick a plan that fits
+                your budget and goals.
+              </p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span class="text">Can beginners use Tradexa?</span>
+              <span class="icon">+</span>
+            </button>
+            <div class="faq-answer">
+              <p>Absolutely. Tradexa is beginner friendly.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <div class="footer-container">
+          <div class="footer-column">
+            <!-- <img src="./images/main logo.jpg" alt="logo" /> -->
+            <p>Secure Crypto Investments, Made Simple.</p>
+          </div>
+
+          <div class="footer-column">
+            <h4>Quick Links</h4>
+            <ul>
+              <li><a href="/">Home</a></li>
+              <li><a href="#">Features</a></li>
+              <li><a href="/plans">Plans</a></li>
+              <li><a href="/testimonials">Testimonials</a></li>
+              <li><a href="/about">About Us</a></li>
+              <li><a href="/faq">FAQ</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-column">
+            <h4>Account</h4>
+            <ul>
+              <li><a href="/login">Login</a></li>
+              <li><a href="/signup">Sign Up</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-column">
+            <h4>Contact</h4>
+            <ul>
+              <li>
+                <a href="mailto:contact.tradexa@gmail.com"
+                  >contact.tradexa@gmail.com</a
+                >
+              </li>
+              <li><span>24/7 Support Available</span><br></li>
+            </ul>
+          </div>
+
+          <div class="footer-column">
+            <h4>Address</h4>
+            <ul>
+              <li><span>Tradexa Capital LLC<br>
+1178 Broadway, 3rd Floor<br>
+New York, NY 10001<br>
+United States</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <p>&copy; 2025 Tradexa. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const bgImages = document.querySelectorAll(
+          ".hero-background-images .bg-image"
+        );
+        let currentImageIndex = 0;
+
+        const heroBackgrounds = ["./images/back3.jpg", "./images/back8.jpg"];
+
+        if (bgImages.length > 0 && heroBackgrounds.length > 0) {
+          bgImages[0].style.backgroundImage = `url('${heroBackgrounds[0]}')`;
+          bgImages[0].classList.add("active");
+        }
+
+        function changeBackgroundImage() {
+          bgImages[currentImageIndex].classList.remove("active");
+          currentImageIndex = (currentImageIndex + 1) % heroBackgrounds.length;
+          bgImages[
+            currentImageIndex
+          ].style.backgroundImage = `url('${heroBackgrounds[currentImageIndex]}')`;
+          bgImages[currentImageIndex].classList.add("active");
+        }
+
+        if (heroBackgrounds.length > 1) {
+          setInterval(changeBackgroundImage, 8000);
+        }
+
+        // 1. Get all testimonial elements
+        const testimonials = document.querySelectorAll(".testimonial");
+
+        // 2. Get references to the arrow buttons
+        const prevArrow = document.querySelector(".prev-arrow");
+        const nextArrow = document.querySelector(".next-arrow");
+
+        // Initialize the current testimonial index
+        let testimonialIndex = 0;
+
+        // Variable to hold the interval ID, so we can clear it
+        let slideInterval;
+
+        // Function to update the display of testimonials
+        function showTestimonial(index) {
+          // Remove 'testimonial-active' from all testimonials
+          testimonials.forEach((testimonial) => {
+            testimonial.classList.remove("testimonial-active");
+          });
+
+          // Add 'testimonial-active' to the current testimonial
+          testimonials[index].classList.add("testimonial-active");
+        }
+
+        // Function to slide to the next testimonial (for automatic and next button)
+        function slideNext() {
+          // Hide the current active testimonial
+          testimonials[testimonialIndex].classList.remove("testimonial-active");
+
+          // Move to the next index, looping back to the start if at the end
+          testimonialIndex = (testimonialIndex + 1) % testimonials.length;
+
+          // Show the new active testimonial
+          testimonials[testimonialIndex].classList.add("testimonial-active");
+        }
+
+        // Function to slide to the previous testimonial (for prev button)
+        function slidePrev() {
+          // Hide the current active testimonial
+          testimonials[testimonialIndex].classList.remove("testimonial-active");
+
+          // Move to the previous index, looping to the end if at the start
+          testimonialIndex =
+            (testimonialIndex - 1 + testimonials.length) % testimonials.length;
+
+          // Show the new active testimonial
+          testimonials[testimonialIndex].classList.add("testimonial-active");
+        }
+
+        // Function to start the automatic slideshow
+        function startAutoSlide() {
+          // Clear any existing interval to prevent multiple intervals running
+          clearInterval(slideInterval);
+          slideInterval = setInterval(slideNext, 4000); // 4 seconds
+        }
+
+        // Add event listeners for the arrows
+        if (prevArrow && nextArrow) {
+          prevArrow.addEventListener("click", () => {
+            slidePrev();
+            startAutoSlide(); // Reset the auto-slide timer after manual interaction
+          });
+
+          nextArrow.addEventListener("click", () => {
+            slideNext();
+            startAutoSlide(); // Reset the auto-slide timer after manual interaction
+          });
+        } else {
+          console.error(
+            "Error: Testimonial arrow buttons not found. Check HTML classes."
+          );
+        }
+
+        // Initial display and start the automatic slideshow
+        if (testimonials.length > 0) {
+          showTestimonial(testimonialIndex); // Ensure the first testimonial is active on load
+          startAutoSlide();
+        } else {
+          console.warn(
+            "No testimonials found. Testimonial slider will not function."
+          );
+        }
+
+        const faqButtons = document.querySelectorAll(".faq-question");
+
+        faqButtons.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            btn.classList.toggle("active");
+
+            const answer = btn.nextElementSibling;
+            const icon = btn.querySelector(".icon");
+
+            if (btn.classList.contains("active")) {
+              answer.style.maxHeight = answer.scrollHeight + "px";
+            } else {
+              answer.style.maxHeight = null;
+            }
+          });
+        });
+
+        const scrollRevealElements =
+          document.querySelectorAll(".scroll-reveal");
+
+        const observerOptions = {
+          root: null,
+          rootMargin: "0px",
+          threshold: 0.1,
+        };
+
+        const observer = new IntersectionObserver((entries, observer) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("is-visible");
+              observer.unobserve(entry.target);
+            }
+          });
+        }, observerOptions);
+
+        scrollRevealElements.forEach((element) => {
+          observer.observe(element);
+        });
+      });
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const menuIcon = document.getElementById("menu");
+        const closeIcon = document.getElementById("close");
+        const navList = document.querySelector(".nav-menu");
+
+        // Initialize icon visibility using classes
+        menuIcon.classList.add('icon-visible'); // Hamburger visible initially
+        closeIcon.classList.add('icon-hidden'); // Close icon hidden initially
+
+        menuIcon.addEventListener("click", () => {
+          navList.classList.add("show");
+          menuIcon.classList.remove('icon-visible');
+          menuIcon.classList.add('icon-hidden');
+          closeIcon.classList.remove('icon-hidden');
+          closeIcon.classList.add('icon-visible');
+        });
+
+        closeIcon.addEventListener("click", () => {
+          navList.classList.remove("show");
+          closeIcon.classList.remove('icon-visible');
+          closeIcon.classList.add('icon-hidden');
+          menuIcon.classList.remove('icon-hidden');
+          menuIcon.classList.add('icon-visible');
+        });
+      });
+    </script>
+
+    <script>
+      // Loading Screen JavaScript
+      document.addEventListener("DOMContentLoaded", function () {
+        const loadingScreen = document.getElementById("loadingScreen");
+        const mainContent = document.getElementById("mainContent");
+
+        // Ensure elements exist before proceeding
+        if (!loadingScreen || !mainContent) {
+          console.error("Loading screen or main content element not found!");
+          return; // Exit if elements are missing to prevent errors
+        }
+
+        let loadingComplete = false; // Flag to ensure hideLoadingScreen runs only once
+
+        // Disable scrolling during loading
+        document.body.style.overflow = "hidden";
+        document.documentElement.style.overflow = "hidden";
+
+        // Set minimum loading time (in milliseconds)
+        const minLoadingTime = 2000; // 2 seconds
+        const startTime = Date.now();
+
+        function hideLoadingScreen() {
+          if (loadingComplete) {
+            return; // Already hidden, prevent multiple executions
+          }
+          loadingComplete = true; // Mark as complete
+
+          const elapsedTime = Date.now() - startTime;
+          const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+
+          setTimeout(() => {
+            // Fade out loading screen
+            loadingScreen.classList.add("fade-out");
+
+            // Show main content after fade out completes
+            // Use a transitionend event listener for more reliable timing
+            loadingScreen.addEventListener(
+              "transitionend",
+              function handler() {
+                loadingScreen.style.display = "none";
+                mainContent.classList.add("show"); // Assuming 'show' makes it visible
+
+                // Re-enable scrolling
+                document.body.style.overflow = "auto";
+                document.documentElement.style.overflow = "auto";
+
+                // Remove the event listener to prevent it from firing again
+                loadingScreen.removeEventListener("transitionend", handler);
+              },
+              { once: true }
+            ); // Use { once: true } for modern browsers if you don't need a named function 'handler'
+
+            // Fallback for browsers that don't support { once: true } or if transitionend doesn't fire
+            setTimeout(() => {
+              if (loadingScreen.style.display !== "none") {
+                // Only apply if not already hidden by transitionend
+                loadingScreen.style.display = "none";
+                mainContent.classList.add("show");
+                document.body.style.overflow = "auto";
+                document.documentElement.style.overflow = "auto";
+              }
+            }, 500 + 100); // Wait for fade out transition (500ms) + a little buffer
+          }, remainingTime);
+        }
+
+        // Attempt to hide loading screen when page is fully loaded (images, etc.)
+        window.addEventListener("load", hideLoadingScreen);
+
+        // Fallback: hide loading screen after maximum time (e.g., if 'load' event never fires due to errors)
+        setTimeout(hideLoadingScreen, 5000); // 5 seconds max
+      });
+    </script>
+    <!-- Smartsupp Live Chat script -->
+<script type="text/javascript">
+var _smartsupp = _smartsupp || {};
+_smartsupp.key = 'ba6a5df2d0615c8a2ce3a85521dc1af4083b028c';
+window.smartsupp||(function(d) {
+  var s,c,o=smartsupp=function(){ o._.push(arguments)};o._=[];
+  s=d.getElementsByTagName('script')[0];c=d.createElement('script');
+  c.type='text/javascript';c.charset='utf-8';c.async=true;
+  c.src='https://www.smartsuppchat.com/loader.js?';s.parentNode.insertBefore(c,s);
+})(document);
+</script>
+<noscript> Powered by <a href=“https://www.smartsupp.com” target=“_blank”>Smartsupp</a></noscript>
+
+  </body>
+</html>

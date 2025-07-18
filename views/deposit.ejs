@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deposit - Tradexa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;0,800;0,900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/boxicons/2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h2 class="logo" id="sidebarLogo">
+                <span class="logo-text">Tradexa</span>
+                <i class="fas fa-bars logo-toggle-icon"></i>
+            </h2>
+            <nav>
+                <ul>
+                    <li class="<%= currentPage === 'dashboard' ? 'active' : '' %>" data-section="dashboard">
+                    <a href="/dashboard"><i class="fas fa-home"></i> <span class="nav-text">Dashboard</span></a>
+                </li>
+                <li class="<%= currentPage === 'my-plans' ? 'active' : '' %>" data-section="my-plans">
+                    <a href="/my-plans"><i class="fas fa-chart-line"></i> <span class="nav-text">My Plans</span></a>
+                </li>
+                <li class="<%= currentPage === 'deposit' ? 'active' : '' %>" data-section="deposit">
+                    <a href="/deposit"><i class="fas fa-arrow-down"></i> <span class="nav-text">Deposit</span></a>
+                </li>
+                <li class="<%= currentPage === 'withdraw' ? 'active' : '' %>" data-section="withdraw">
+                    <a href="/withdraw"><i class="fas fa-arrow-up"></i> <span class="nav-text">Withdraw</span></a>
+                </li>
+                <li class="<%= currentPage === 'transactions' ? 'active' : '' %>" data-section="transactions">
+                    <a href="/transactions"><i class="fas fa-list"></i> <span class="nav-text">Transactions</span></a>
+                </li>
+                <li class="<%= currentPage === 'profile' ? 'active' : '' %>" data-section="profile">
+                    <a href="#"><i class="fas fa-user"></i> <span class="nav-text">Profile</span></a>
+                </li>
+                <li>
+                    <a href="/logout"><i class="fas fa-sign-out-alt"></i> <span class="nav-text">Logout</span></a>
+                </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="deposit-container">
+                <% if (isTopUp) { %>
+                    <h2>Top Up Your <%= selectedPlan %> Plan</h2>
+                    <p class="info-message">Add more funds to increase your current plan's investment principal.</p>
+                <% } else { %>
+                    <h2>Make a Deposit</h2>
+                <% } %>
+
+                <% if (error) { %>
+                    <div class="message error"><%= error %></div>
+                <% } %>
+                <% if (success) { %>
+                    <div class="message success"><%= success %></div>
+                <% } %>
+
+                <% if (selectedPlan && planDetails) { %>
+                    <div class="selected-plan-info">
+                        <h3>Selected Plan: <strong><%= selectedPlan %></strong></h3>
+                        <% if (isTopUp) { %>
+                            <p>Current Investment: <strong>$<%= user.initialInvestment.toFixed(2) %></strong></p>
+                            <p>Total Allowed Investment for <%= selectedPlan %>: <strong>$<%= planDetails.minDeposit %> – <%= planDetails.maxDeposit === Infinity ? 'Unlimited' : '$' + planDetails.maxDeposit %></strong></p>
+                            <% if (planDetails.maxDeposit !== Infinity) { %>
+                                <p>Maximum Additional Deposit: <strong>$<%= (planDetails.maxDeposit - user.initialInvestment).toFixed(2) %></strong></p>
+                            <% } %>
+                        <% } else if (selectedPlan === 'Starter') { %>
+                            <p>Activation Threshold: <strong>$<%= planDetails.minDeposit %></strong></p>
+                            <p>Total Deposit Range: <strong>$<%= planDetails.minDeposit %> – <%= planDetails.maxDeposit === Infinity ? 'Unlimited' : '$' + planDetails.maxDeposit %></strong></p>
+                            <p>Note: Deposits below $<%= planDetails.minDeposit %> accumulate towards activation.</p>
+                            <% if (user.pendingStarterDeposit > 0) { %>
+                                <p class="info-message">You currently have <strong>$<%= user.pendingStarterDeposit.toFixed(2) %></strong> pending for Starter activation.</p>
+                            <% } %>
+                        <% } else { %>
+                            <p>Minimum Deposit: <strong>$<%= planDetails.minDeposit %></strong></p>
+                            <p>Maximum Deposit: <strong><%= planDetails.maxDeposit === Infinity ? 'Unlimited' : '$' + planDetails.maxDeposit %></strong></p>
+                        <% } %>
+                        <p>ROI: <strong><%= (planDetails.dailyROI * 100).toFixed(0) %>%</strong></p> <!-- Changed from Daily ROI -->
+                        <p>Duration: <strong><%= planDetails.durationDays %> Days</strong></p>
+                        <p>Withdrawals: <strong>Instant after <%= planDetails.withdrawalAfterDays %> days (maturity)</strong></p>
+                    </div>
+
+                    <form action="/deposit" method="POST">
+                        <input type="hidden" name="action" value="confirm_deposit">
+                        <div class="form-group">
+                            <label for="amount">Enter Deposit Amount (USD)</label>
+                            <input
+                                type="number"
+                                id="amount"
+                                name="amount"
+                                placeholder="<%
+                                    if (isTopUp) {
+                                        %>e.g., 100<%
+                                    } else if (selectedPlan === 'Starter') {
+                                        %>e.g., 100 (min for single deposit) or <%= planDetails.minDeposit %> (activation)<%
+                                    } else {
+                                        %>e.g., <%= planDetails.minDeposit %><%
+                                    }
+                                %>"
+                                step="0.01"
+                                <% if (isTopUp || selectedPlan === 'Starter') { %>
+                                    min="1" <% // Allow any amount for Starter or top-up, server handles accumulation/max %>
+                                <% } else { %>
+                                    min="<%= planDetails.minDeposit %>"
+                                <% } %>
+                                <% if (planDetails.maxDeposit !== Infinity) { %>
+                                    <% if (isTopUp) { %>
+                                        max="<%= (planDetails.maxDeposit - user.initialInvestment).toFixed(2) %>"
+                                    <% } else { %>
+                                        max="<%= planDetails.maxDeposit %>"
+                                    <% } %>
+                                <% } %>
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label>Choose Payment Cryptocurrency</label>
+                            <div class="crypto-options">
+                                <label class="crypto-option">
+                                    <input type="radio" name="paymentCurrency" value="BTC" required>
+                                    <span>Bitcoin (BTC)</span>
+                                </label>
+                                <label class="crypto-option">
+                                    <input type="radio" name="paymentCurrency" value="USDT_TRC20" required>
+                                    <span>USDT (TRC20)</span>
+                                </label>
+                                <label class="crypto-option">
+                                    <input type="radio" name="paymentCurrency" value="USDT_ERC20" required>
+                                    <span>USDT (ERC20)</span>
+                                </label>
+                                <label class="crypto-option">
+                                    <input type="radio" name="paymentCurrency" value="USDC" required>
+                                    <span>USDC (TRC20)</span>
+                                </label>
+                                <label class="crypto-option">
+                                    <input type="radio" name="paymentCurrency" value="ETH" required>
+                                    <span>ETHEREUM (ETH)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-submit-deposit">
+                            <% if (isTopUp) { %>
+                                Confirm Top Up
+                            <% } else { %>
+                                Confirm Deposit
+                            <% } %>
+                        </button>
+                    </form>
+                <% } else { %>
+                    <p class="message error">No plan selected. Please go to <a href="/my-plans">My Plans</a> to choose an investment plan first.</p>
+                <% } %>
+
+                <a href="/dashboard" class="back-link">Back to Dashboard</a>
+            </div>
+        </main>
+    </div>
+
+    <!-- Common JavaScript for sidebar toggle -->
+    <script>
+        const sidebarLogo = document.getElementById('sidebarLogo');
+        const dashboardContainer = document.querySelector('.dashboard-container');
+
+        sidebarLogo.addEventListener('click', () => {
+            dashboardContainer.classList.toggle('collapsed');
+        });
+
+        // Keep active state on page refresh based on current URL
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.sidebar nav ul li a');
+
+            navLinks.forEach(link => {
+                link.closest('li').classList.remove('active'); // Remove existing active classes
+
+                // Add active class if href matches current path
+                if (link.getAttribute('href') === currentPath) {
+                    link.closest('li').classList.add('active');
+                }
+            });
+        });
+    </script>
+
+    <script>
+        // Client-side validation for amount input based on selected plan and top-up status
+        const amountInput = document.getElementById('amount');
+        if (amountInput) {
+            amountInput.addEventListener('input', function() {
+                const min = parseFloat(this.min);
+                const max = parseFloat(this.max);
+                const value = parseFloat(this.value);
+                const isTopUp = <%= isTopUp %>; // Get isTopUp flag from EJS variable
+                const selectedPlan = "<%= selectedPlan %>"; // Get selected plan from EJS variable
+
+                if (isTopUp) {
+                    // For top-up, client-side min is 1. Server handles actual total investment limit.
+                    // Client-side validation for max only
+                    if (value < 1) {
+                         this.setCustomValidity('Minimum top-up amount is $1.');
+                    } else if (max && value > max) {
+                        this.setCustomValidity(`Top-up amount cannot exceed $${max}.`);
+                    } else {
+                        this.setCustomValidity(''); // Clear custom validity message
+                    }
+                } else if (selectedPlan === 'Starter') {
+                    // For Starter (initial deposit), client-side min is 1. Server handles accumulation/activation.
+                    // Client-side validation for max only
+                    if (value < 1) {
+                         this.setCustomValidity('Minimum deposit amount is $1.');
+                    } else if (max && value > max) {
+                        this.setCustomValidity(`Deposit amount cannot exceed $${max}.`);
+                    } else {
+                        this.setCustomValidity(''); // Clear custom validity message
+                    }
+                } else {
+                    // For Growth and Elite (initial deposit), enforce strict min/max
+                    if (value < min) {
+                        this.setCustomValidity(`Amount must be at least $${min}.`);
+                    } else if (max && value > max) {
+                        this.setCustomValidity(`Amount cannot exceed $${max}.`);
+                    } else {
+                        this.setCustomValidity(''); // Clear custom validity message
+                    }
+                }
+            });
+        }
+    </script>
+         <!-- Smartsupp Live Chat script -->
+<!-- Smartsupp Live Chat script -->
+<!-- Smartsupp Live Chat script -->
+<script type="text/javascript">
+var _smartsupp = _smartsupp || {};
+_smartsupp.key = 'ba6a5df2d0615c8a2ce3a85521dc1af4083b028c';
+window.smartsupp||(function(d) {
+  var s,c,o=smartsupp=function(){ o._.push(arguments)};o._=[];
+  s=d.getElementsByTagName('script')[0];c=d.createElement('script');
+  c.type='text/javascript';c.charset='utf-8';c.async=true;
+  c.src='https://www.smartsuppchat.com/loader.js?';s.parentNode.insertBefore(c,s);
+})(document);
+</script>
+<noscript> Powered by <a href=“https://www.smartsupp.com” target=“_blank”>Smartsupp</a></noscript>
+</body>
+</html>

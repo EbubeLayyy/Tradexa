@@ -1,0 +1,216 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Poppins", sans-serif;
+  background-color: #f6f5f3;
+}
+
+.top-section {
+  background-color: #03598c; /* This background will now apply to the logo area */
+  color: #f6f5f3;
+  text-align: center;
+  padding: 40px 20px 20px; /* Adjust padding for the logo */
+  /* REMOVED: Old padding values (60px 20px 40px) */
+}
+
+/* NEW: Styles for the Tradexa logo (now inside .top-section) */
+.tradexa-logo {
+  font-family: 'Poppins', sans-serif;
+  font-size: 36px; /* Adjust as needed */
+  font-weight: 700; /* Bold */
+  color: #f6f5f3; /* White color for contrast against blue background */
+  text-decoration: none;
+  display: inline-block;
+  transition: color 0.3s ease;
+}
+
+.tradexa-logo:hover {
+  color: #c0c0c0; /* Slightly lighter on hover */
+}
+
+/* REMOVED: Old styles for h1 and p that were in top-section */
+/* .top-section h1 {
+  font-size: 36px;
+  margin-bottom: 20px;
+}
+
+.top-section p {
+  font-size: 18px;
+  margin-bottom: 30px;
+} */
+
+.signup-form-section {
+  background-color: #f6f5f3;
+  padding: 40px 20px;
+  /* max-width: 500px; -- Reverted to user's original, then adjusted form directly */
+  margin: 0 auto;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  margin-top: -30px; /* Keep this to overlap with the top-section */
+  font-family: "Poppins", sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: auto; /* Reset min-height as content is now inside */
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+}
+
+/* NEW: Styles for the moved heading and paragraph */
+.signup-form-section .form-title {
+  font-size: 28px; /* Slightly smaller than original top-section h1 */
+  color: #03598c;
+  margin-bottom: 10px;
+  font-weight: 600;
+  text-align: center;
+  width: 100%;
+}
+
+.signup-form-section .form-description {
+  font-size: 16px; /* Slightly smaller than original top-section p */
+  color: #555;
+  margin-bottom: 30px;
+  text-align: center;
+  width: 100%;
+}
+
+.signup-form {
+  width: 100%;
+  max-width: 350px; /* Adjusted: Smaller and more centralized */
+  padding: 30px; /* Adjusted: Slightly reduced padding for a smaller look */
+  box-sizing: border-box;
+}
+
+.signup-form .form-group {
+  margin-bottom: 20px;
+  position: relative; /* Crucial for positioning the icon */
+  font-family: "Poppins", sans-serif;
+}
+
+.signup-form i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #03598c; /* This is your existing icon color */
+}
+
+.signup-form input,
+.signup-form select {
+  width: 100%;
+  padding: 10px 12px 10px 40px; /* Adjusted: Smaller vertical padding, left padding for icon */
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 16px;
+  font-family: "Poppins", sans-serif;
+  box-sizing: border-box;
+}
+
+/* Specific styles for the password toggle icon */
+.password-group .password-toggle-icon {
+  right: 12px; /* Position on the right side of the input */
+  left: auto; /* Override the default 'left' from .signup-form i */
+  cursor: pointer;
+  /* NO COLOR CHANGE HERE - it will inherit from .signup-form i */
+}
+
+/* Adjust padding for the password input to make space for the eye icon */
+.password-group input {
+    padding-right: 40px; /* Make space for the eye icon on the right */
+}
+
+.signup-form .select-group i {
+  left: 12px; /* Ensure icon in select group is also positioned correctly */
+}
+
+.signup-form select {
+  appearance: none; /* Remove default select arrow */
+  /* This background-image is from your original CSS, kept as is */
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%20viewBox%3D%220%200%20292.4%20292.4%22%3E%3Cpath%20fill%3D%22%2303598c%22%20d%3D%22M287%2C197.9c-3.2%2C3.2-7.1%2C4.9-11.8%2C4.9s-8.6-1.7-11.8-4.9L146.2%2C96.9l-117%2C117c-3.2%2C3.2-7.1%2C4.9-11.8%2C4.9s-8.6-1.7-11.8-4.9c-6.5-6.5-6.5-17.1%2C0-23.6L134.4%2C69.3c3.2-3.2%2C7.1-4.9%2C11.8-4.9s8.6%2C1.7%2C11.8%2C4.9l134.4%2C134.4C293.5%2C180.8%2C293.5%2C191.4%2C287%2C197.9z%22%2F%3E%3C%2Fsvg%3E');
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+}
+
+.register-button {
+  width: 100%;
+  background-color: #03598c;
+  color: #f6f5f3;
+  padding: 12px; /* Adjusted: Smaller padding for the button */
+  font-size: 16px;
+  font-family: "Poppins", sans-serif;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.register-button:hover {
+  background-color: #024a75; /* Changed to a slightly darker hover color for consistency */
+  color: #f6f5f3;
+}
+
+.login-redirect {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 14px;
+  color: #03598c;
+}
+
+.login-redirect a {
+  text-decoration: none;
+  font-weight: 500;
+  color: #03598c;
+}
+
+.login-redirect a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive adjustments for logo and layout - ONLY ADDED TO EXISTING MEDIA QUERY */
+@media (max-width: 768px) {
+    .tradexa-logo {
+        font-size: 30px;
+    }
+    .top-section {
+        padding: 20px 20px 10px; /* Adjust padding for smaller screens */
+    }
+    .signup-form-section {
+        padding: 30px 15px; /* Adjust padding for smaller screens */
+        margin-top: -10px; /* Smaller overlap */
+    }
+    .signup-form-section .form-title {
+        font-size: 24px;
+        margin-bottom: -8px;
+    }
+    .signup-form-section .form-description {
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+    /* START: New/Adjusted rules within existing media query */
+    .signup-form {
+        max-width: 370px; /* Adjusted: Even smaller on very small screens */
+        padding: 15px;
+    }
+    .signup-form input,
+    .signup-form select {
+        padding: 10px 10px 10px 40px; /* Adjusted: Smaller padding for inputs on mobile */
+        font-size: 15px;
+    }
+    .signup-form i {
+        left: 10px; /* Adjusted: Icon slightly more to the left on mobile */
+        font-size: 16px;
+    }
+    .password-group .password-toggle-icon {
+        right: 10px; /* Adjusted: Eye icon slightly more to the right on mobile */
+        font-size: 16px;
+    }
+    .register-button {
+        padding: 10px; /* Adjusted: Smaller padding for the button on mobile */
+        font-size: 16px;
+    }
+    /* END: New/Adjusted rules within existing media query */
+}
