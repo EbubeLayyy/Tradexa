@@ -8,7 +8,7 @@ const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
-const User = require('./models/User');
+const User = require('./models/User'); // Ensure this path is correct: './models/User'
 const Transaction = require('./models/Transaction');
 const multer = require('multer');
 const passport = require('passport');
@@ -24,9 +24,8 @@ const { Server } = require('socket.io');
 const io = new Server(server);
 const cron = require('node-cron');
 
-// --- DEBUGGING: Log the PORT environment variable Railway provides ---
 console.log('Railway PORT env var (process.env.PORT):', process.env.PORT);
-// --- END DEBUGGING ---
+console.log('Railway MONGODB_URI env var (process.env.MONGODB_URI is present):', !!process.env.MONGODB_URI);
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI, {
@@ -73,36 +72,45 @@ passport.use(new LocalStrategy({ usernameField: 'email' }, async (email, passwor
 
 // Passport.js Serialize/Deserialize User for Session Management
 passport.serializeUser((user, done) => {
-    console.log('serializeUser called with user ID:', user.id); // NEW LOG
+    console.log('serializeUser: User ID being serialized:', user.id); // More specific log
     done(null, user.id);
 });
 
 passport.deserializeUser(async (id, done) => {
     try {
-        console.log('deserializeUser called with ID:', id); // NEW LOG
-        const user = await User.findById(id);
+        console.log('deserializeUser: Attempting to find user with ID:', id); // More specific log
+        console.log('deserializeUser: Type of ID:', typeof id); // Log type of ID
+        
+        // This is the critical part to debug
+        const user = await User.findById(id); 
+
         if (user) {
-            console.log('User found in deserializeUser:', user.email); // NEW LOG
+            console.log('deserializeUser: Successfully found user:', user.email);
         } else {
-            console.log('User NOT found in deserializeUser for ID:', id); // NEW LOG
+            console.warn('deserializeUser: User NOT found for ID:', id); // Changed to warn
+            // Log if the User model itself is available
+            console.warn('deserializeUser: Is User model available?', !!User); 
+            // Attempt to find any user to check general DB connectivity for the User model
+            const anyUser = await User.findOne({}); 
+            console.warn('deserializeUser: Found any user?', !!anyUser); 
+            if (anyUser) {
+                console.warn('deserializeUser: Example user found:', anyUser.email);
+            }
         }
         done(null, user);
     } catch (err) {
-        console.error('Error in deserializeUser:', err);
+        console.error('deserializeUser: Error finding user:', err); // More specific error log
         done(err);
     }
 });
 
-// EJS View Engine Setup
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Middleware Setup
-app.use(express.static(path.join(__dirname, 'public'))); // Serve static files
-app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
-app.use(express.json()); // Parse JSON bodies
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
-// UPDATED CORS Configuration for Production and Development
 app.use(cors({
     origin: function (origin, callback) {
         const allowedOrigins = [
@@ -135,7 +143,6 @@ app.use(cors({
     credentials: true
 }));
 
-// UPDATED Session Middleware to use MongoStore
 app.use(session({
     secret: process.env.SESSION_SECRET || 'a_very_secret_key_for_development_only_change_this_in_production',
     resave: false,
@@ -144,20 +151,18 @@ app.use(session({
     store: MongoStore.create({
         mongoUrl: process.env.MONGODB_URI,
         collectionName: 'sessions',
-        ttl: 1000 * 60 * 60 * 24 // Session TTL in seconds, 24 hours
+        ttl: 1000 * 60 * 60 * 24
     }),
     cookie: {
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
-        maxAge: 1000 * 60 * 60 * 24 // 24 hours (matches TTL for consistency)
+        maxAge: 1000 * 60 * 60 * 24
     }
 }));
 
-// Passport.js Initialization
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Global res.locals for EJS templates
 app.use((req, res, next) => {
     res.locals.app = {
         locals: {
@@ -169,10 +174,8 @@ app.use((req, res, next) => {
     next();
 });
 
-// Multer Setup for Profile Picture Uploads
 const uploadDir = 'public/uploads/profile_pictures/';
 
-// Create upload directory if it doesn't exist
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
     console.log(`Created upload directory: ${uploadDir}`);
@@ -193,7 +196,7 @@ const storage = multer.diskStorage({
 const upload = multer({
     storage: storage,
     limits: {
-        fileSize: 5 * 1024 * 1024 // 5MB limit
+        fileSize: 5 * 1024 * 1024
     },
     fileFilter: function (req, file, cb) {
         console.log('Multer fileFilter: Checking file type...');
@@ -211,25 +214,16 @@ const upload = multer({
     }
 });
 
-// Authentication Middleware
 function isAuthenticated(req, res, next) {
-    console.log('isAuthenticated middleware triggered.'); // NEW LOG
-    console.log('req.sessionID:', req.sessionID); // NEW LOG
-    console.log('req.session:', req.session); // NEW LOG
-    console.log('req.user (from passport):', req.user); // NEW LOG
-
     if (req.isAuthenticated()) {
-        console.log('User is authenticated. Proceeding to next middleware.'); // NEW LOG
         return next();
     }
-    console.log('User is NOT authenticated. Redirecting to login.'); // NEW LOG
     if (req.xhr || req.headers.accept.indexOf('json') > -1) {
         return res.status(401).json({ success: false, message: 'Unauthorized. Please log in to access this resource.' });
     }
     res.redirect(`${req.protocol}://${req.get('host')}/login?error=Please log in to access this page.`);
 }
 
-// Admin Authorization Middleware
 function isAdmin(req, res, next) {
     if (req.session.isAdmin === true) {
         return next();
@@ -240,7 +234,6 @@ function isAdmin(req, res, next) {
     res.status(403).render('error', { message: 'Access Denied: You are not authorized to view this page.', title: 'Access Denied' });
 }
 
-// Nodemailer Transporter Setup
 const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
@@ -251,7 +244,6 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// Verify Nodemailer Transporter Connection
 transporter.verify(function (error, success) {
     if (error) {
         console.error("Nodemailer transporter verification failed:", error);
@@ -260,7 +252,6 @@ transporter.verify(function (error, success) {
     }
 });
 
-// Investment Plans Configuration
 const investmentPlans = {
     Starter: {
         minDeposit: 500,
@@ -285,7 +276,6 @@ const investmentPlans = {
     }
 };
 
-// Cryptocurrency Wallet Addresses
 const cryptoWallets = {
     BTC: process.env.BTC_WALLET_ADDRESS || 'bc1qexamplebtcaddress',
     USDT_ERC20: process.env.USDT_ERC20_WALLET_ADDRESS || '0xexampleusdt_erc20address',
@@ -296,7 +286,6 @@ const cryptoWallets = {
 
 const supportEmail = 'contact.tradexa@gmail.com';
 
-// Socket.IO for Real-time Updates
 const userSockets = new Map();
 
 io.on('connection', (socket) => {
@@ -316,7 +305,7 @@ io.on('connection', (socket) => {
         console.log('User disconnected:', socket.id);
         userSockets.forEach((sockets, userId) => {
             if (sockets.has(socket.id)) {
-                sockets.delete(sockets.delete);
+                sockets.delete(socket.id);
                 if (sockets.size === 0) {
                     userSockets.delete(userId);
                 }
@@ -327,7 +316,6 @@ io.on('connection', (socket) => {
     });
 });
 
-// Function to emit balance updates to connected user sockets
 async function emitBalanceUpdate(userId) {
     try {
         const user = await User.findById(userId);
@@ -375,7 +363,6 @@ async function emitBalanceUpdate(userId) {
     }
 }
 
-// Cron Job for Daily Profit Calculation
 async function calculateDailyProfits() {
     console.log('Running daily profit calculation...');
     try {
@@ -438,7 +425,6 @@ async function calculateDailyProfits() {
     }
 }
 
-// Schedule cron job to run daily at midnight (0 0 * * *) in Africa/Lagos timezone
 cron.schedule('0 0 * * *', () => {
     console.log('Cron job: Initiating daily profit calculation...');
     calculateDailyProfits();
@@ -447,26 +433,20 @@ cron.schedule('0 0 * * *', () => {
     timezone: "Africa/Lagos"
 });
 
-// --- ROUTES ---
-
-// Health Check Endpoint (for Railway's health checks)
 app.get('/healthz', (req, res) => {
     res.status(200).send('OK');
 });
 
-// Home Page
 app.get("/", (req, res) => {
     res.render("index");
 });
 
-// User Login Page
 app.get("/login", (req, res) => {
     const messages = req.session.messages || [];
-    req.session.messages = []; // Clear messages after displaying
+    req.session.messages = [];
     res.render('login', { error: messages[0], success: req.query.success || null });
 });
 
-// User Login POST
 app.post('/login', (req, res, next) => {
     passport.authenticate('local', (err, user, info) => {
         if (err) {
@@ -495,12 +475,10 @@ app.post('/login', (req, res, next) => {
     })(req, res, next);
 });
 
-// User Signup Page
 app.get('/signup', (req, res) => {
     res.render('register', { error: null, success: null });
 });
 
-// User Signup POST
 app.post('/signup', async (req, res) => {
     const { fullName, email, phoneNumber, gender, country, password, confirmPassword } = req.body;
 
@@ -586,7 +564,6 @@ app.post('/signup', async (req, res) => {
     }
 });
 
-// Email Verification Route
 app.get('/verify-email/:token', async (req, res) => {
     try {
         const { token } = req.params;
@@ -614,14 +591,12 @@ app.get('/verify-email/:token', async (req, res) => {
     }
 });
 
-// Forgot Password Page
 app.get('/forgot-password', (req, res) => {
     const errorMessage = req.query.error || null;
     const successMessage = req.query.success || null;
     res.render('forgot-password', { error: errorMessage, success: successMessage });
 });
 
-// Forgot Password POST (send reset link)
 app.post('/forgot-password', async (req, res) => {
     const { email } = req.body;
 
@@ -645,7 +620,7 @@ app.post('/forgot-password', async (req, res) => {
         await user.save();
 
         const resetUrl = `${res.locals.app.locals.baseUrl}/reset-password/${resetToken}`;
-        console.log(`--- PASSWORD RESET EMAIL URL BEING SENT: ${resetUrl} ---`); // NEW LOG
+        console.log(`--- PASSWORD RESET EMAIL URL BEING SENT: ${resetUrl} ---`);
 
         const mailOptions = {
             from: `"Tradexa" <${supportEmail}>`,
@@ -673,7 +648,6 @@ app.post('/forgot-password', async (req, res) => {
     }
 });
 
-// Reset Password Page (after clicking link from email)
 app.get('/reset-password/:token', async (req, res) => {
     try {
         const { token } = req.params;
@@ -694,7 +668,6 @@ app.get('/reset-password/:token', async (req, res) => {
     }
 });
 
-// Reset Password POST
 app.post('/reset-password/:token', async (req, res) => {
     try {
         const { token } = req.params;
@@ -733,7 +706,6 @@ app.post('/reset-password/:token', async (req, res) => {
     }
 });
 
-// User Logout Route
 app.get('/logout', (req, res, next) => {
     req.logout((err) => {
         if (err) {
@@ -751,7 +723,6 @@ app.get('/logout', (req, res, next) => {
     });
 });
 
-// User Dashboard
 app.get('/dashboard', isAuthenticated, async (req, res) => {
     console.log('--- Accessing /dashboard route ---');
     try {
@@ -816,7 +787,6 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
     }
 });
 
-// My Plans Page
 app.get('/my-plans', isAuthenticated, async (req, res) => {
     try {
         const user = req.user;
@@ -862,7 +832,6 @@ app.get('/my-plans', isAuthenticated, async (req, res) => {
     }
 });
 
-// Select Plan POST
 app.post('/select-plan', isAuthenticated, async (req, res) => {
     const { planName } = req.body;
     const user = req.user;
@@ -881,7 +850,6 @@ app.post('/select-plan', isAuthenticated, async (req, res) => {
     res.redirect(`${req.protocol}://${req.get('host')}/deposit?success=Plan selected! Now enter your deposit amount.`);
 });
 
-// Deposit Page
 app.get('/deposit', isAuthenticated, async (req, res) => {
     try {
         const user = req.user;
@@ -924,7 +892,6 @@ app.get('/deposit', isAuthenticated, async (req, res) => {
     }
 });
 
-// Deposit POST
 app.post('/deposit', isAuthenticated, async (req, res) => {
     const { amount, paymentCurrency } = req.body;
     const depositAmount = parseFloat(amount);
@@ -1019,7 +986,6 @@ app.post('/deposit', isAuthenticated, async (req, res) => {
     }
 });
 
-// Payment Instructions Page
 app.get('/payment-instructions', isAuthenticated, (req, res) => {
     const { amount, currency, address, plan } = req.query;
     if (!amount || !currency || !address || !plan) {
@@ -1035,7 +1001,6 @@ app.get('/payment-instructions', isAuthenticated, (req, res) => {
     });
 });
 
-// Transaction History Page
 app.get('/transactions', isAuthenticated, async (req, res) => {
     try {
         const userTransactions = await Transaction.find({ userId: req.user._id }).sort({ createdAt: -1 });
@@ -1054,7 +1019,6 @@ app.get('/transactions', isAuthenticated, async (req, res) => {
     }
 });
 
-// User Profile Page
 app.get('/profile', isAuthenticated, async (req, res) => {
     try {
         const user = req.user;
@@ -1069,7 +1033,6 @@ app.get('/profile', isAuthenticated, async (req, res) => {
     }
 });
 
-// Profile Picture Upload POST
 app.post('/profile/upload', isAuthenticated, (req, res, next) => {
     console.log('--- Profile Picture Upload Attempt ---');
     upload.single('profilePicture')(req, res, async (err) => {
@@ -1144,7 +1107,6 @@ app.post('/profile/upload', isAuthenticated, (req, res, next) => {
     });
 });
 
-// Profile Details Update POST
 app.post('/profile/update', isAuthenticated, async (req, res) => {
     try {
         console.log('Profile update request received.');
@@ -1194,7 +1156,6 @@ app.post('/profile/update', isAuthenticated, async (req, res) => {
     }
 });
 
-// Withdraw Funds Page
 app.get('/withdraw', isAuthenticated, async (req, res) => {
     try {
         const user = req.user;
@@ -1240,7 +1201,6 @@ app.get('/withdraw', isAuthenticated, async (req, res) => {
     }
 });
 
-// Withdraw Funds POST
 app.post('/withdraw', isAuthenticated, async (req, res) => {
     const { amount, currency, walletAddress } = req.body;
     const withdrawalAmount = parseFloat(amount);
@@ -1315,8 +1275,6 @@ app.post('/withdraw', isAuthenticated, async (req, res) => {
                 <p>You will receive another email once your withdrawal has been approved and processed.</p>
                 <p>Your current balance is now: <strong>$${user.balance.toFixed(2)}</strong></p>
                 <p>Thank you for choosing Tradexa!</p>
-                <p>Best regards,<br>The Tradexa Team</p>
-                <p><a href="mailto:${supportEmail}">${supportEmail}</a></p>
             `
         };
         await transporter.sendMail(mailOptions);
@@ -1331,14 +1289,12 @@ app.post('/withdraw', isAuthenticated, async (req, res) => {
     }
 });
 
-// Admin Login Page
 app.get('/admin/login', (req, res) => {
     const messages = req.session.messages || [];
     req.session.messages = [];
     res.render('admin_login', { error: messages[0], success: req.query.success || null, title: 'Admin Login' });
 });
 
-// Admin Login POST
 app.post('/admin/login', (req, res, next) => {
     const { email, password } = req.body;
 
@@ -1374,7 +1330,6 @@ app.post('/admin/login', (req, res, next) => {
         });
 });
 
-// Admin Dashboard
 app.get('/admin/dashboard', isAdmin, async (req, res) => {
     try {
         const pendingTransactions = await Transaction.find({ status: 'Pending' }).populate('userId', 'fullName email').sort({ createdAt: -1 });
@@ -1398,7 +1353,6 @@ app.get('/admin/dashboard', isAdmin, async (req, res) => {
     }
 });
 
-// Admin Transaction Action (Confirm/Reject)
 app.post('/admin/transaction-action', isAdmin, async (req, res) => {
     const { transactionId, action } = req.body;
 
@@ -1503,8 +1457,6 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
                         <p>You can view your updated balance and transaction history by logging into your dashboard:</p>
                         <p><a href="${res.locals.app.locals.baseUrl}/dashboard">Go to Your Dashboard</a></p>
                         <p>Thank you for choosing Tradexa!</p>
-                        <p>Best regards,<br>The Tradexa Team</p>
-                        <p><a href="mailto:${supportEmail}">${supportEmail}</a></p>
                     `
                 };
 
@@ -1552,7 +1504,6 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
     }
 });
 
-// Admin Route to Reset User Plan (for debugging/admin control)
 app.get('/admin/reset-plan/:email', isAdmin, async (req, res) => {
     const { email } = req.params;
     try {
@@ -1586,7 +1537,6 @@ app.get('/admin/reset-plan/:email', isAdmin, async (req, res) => {
     }
 });
 
-// Admin Logout Route
 app.get('/admin/logout', (req, res) => {
     req.session.destroy(err => {
         if (err) {
