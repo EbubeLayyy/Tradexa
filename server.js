@@ -16,11 +16,18 @@ const LocalStrategy = require('passport-local').Strategy;
 const fs = require('fs');
 const cors = require('cors');
 
+// NEW: Import connect-mongo for persistent session store
+const MongoStore = require('connect-mongo');
+
 const http = require('http');
 const server = http.createServer(app);
 const { Server } = require('socket.io');
 const io = new Server(server);
 const cron = require('node-cron');
+
+// --- DEBUGGING: Log the PORT environment variable Railway provides ---
+console.log('Railway PORT env var (process.env.PORT):', process.env.PORT);
+// --- END DEBUGGING ---
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI, {
@@ -127,16 +134,21 @@ app.use(cors({
     credentials: true
 }));
 
-// Session Middleware
+// UPDATED Session Middleware to use MongoStore
 app.use(session({
     secret: process.env.SESSION_SECRET || 'a_very_secret_key_for_development_only_change_this_in_production',
     resave: false,
     saveUninitialized: false,
     name: 'tradexa_session_id',
+    store: MongoStore.create({ // Use MongoStore
+        mongoUrl: process.env.MONGODB_URI, // Your MongoDB connection string
+        collectionName: 'sessions', // Name of the collection to store sessions
+        ttl: 1000 * 60 * 60 * 24 // Session TTL (Time To Live) in seconds, 24 hours
+    }),
     cookie: {
         secure: process.env.NODE_ENV === 'production', // Use secure cookies in production (HTTPS)
         httpOnly: true, // Prevent client-side JS access to cookie
-        maxAge: 1000 * 60 * 60 * 24 // 24 hours
+        maxAge: 1000 * 60 * 60 * 24 // 24 hours (matches TTL for consistency)
     }
 }));
 
@@ -302,7 +314,7 @@ io.on('connection', (socket) => {
         console.log('User disconnected:', socket.id);
         userSockets.forEach((sockets, userId) => {
             if (sockets.has(socket.id)) {
-                sockets.delete(socket.id);
+                sockets.delete(sockets.delete);
                 if (sockets.size === 0) {
                     userSockets.delete(userId);
                 }
@@ -435,6 +447,11 @@ cron.schedule('0 0 * * *', () => {
 
 // --- ROUTES ---
 
+// Health Check Endpoint (for Railway's health checks)
+app.get('/healthz', (req, res) => {
+    res.status(200).send('OK');
+});
+
 // Home Page
 app.get("/", (req, res) => {
     res.render("index");
@@ -535,7 +552,7 @@ app.post('/signup', async (req, res) => {
         await newUser.save();
 
         // Construct verification URL using app.locals.baseUrl (which now correctly uses req.protocol/host)
-        const verificationUrl = `${app.locals.baseUrl}/verify-email/${verificationToken}`;
+        const verificationUrl = `${res.locals.app.locals.baseUrl}/verify-email/${verificationToken}`; // Use res.locals.app.locals.baseUrl
         console.log(`--- VERIFICATION EMAIL URL BEING SENT: ${verificationUrl} ---`);
 
         // Send verification email
@@ -633,8 +650,8 @@ app.post('/forgot-password', async (req, res) => {
         user.resetPasswordExpires = resetTokenExpires;
         await user.save();
 
-        // Construct reset URL using app.locals.baseUrl (which now correctly uses req.protocol/host)
-        const resetUrl = `${app.locals.baseUrl}/reset-password/${resetToken}`;
+        // Construct reset URL using res.locals.app.locals.baseUrl (which now correctly uses req.protocol/host)
+        const resetUrl = `${res.locals.app.locals.baseUrl}/reset-password/${resetToken}`; // Use res.locals.app.locals.baseUrl
 
         // Send reset email
         const mailOptions = {
@@ -1045,7 +1062,8 @@ app.get('/transactions', isAuthenticated, async (req, res) => {
             title: 'Transaction History',
             currentPage: 'transactions'
         });
-    } catch (error) {
+    }
+    catch (error) {
         console.error('Error fetching user transactions:', error);
         res.redirect(`${req.protocol}://${req.get('host')}/dashboard?error=Could not load transaction history. Please try again.`); // Corrected absolute redirect
     }
@@ -1321,7 +1339,7 @@ app.post('/withdraw', isAuthenticated, async (req, res) => {
                 <p>Your current balance is now: <strong>$${user.balance.toFixed(2)}</strong></p>
                 <p>Thank you for choosing Tradexa!</p>
                 <p>Best regards,<br>The Tradexa Team</p>
-                <p><a href="mailto:${app.locals.baseUrl}/dashboard">Go to Your Dashboard</a></p>
+                <p><a href="mailto:${supportEmail}">${supportEmail}</a></p>
             `
         };
         await transporter.sendMail(mailOptions);
@@ -1514,7 +1532,7 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
                         <p>Your transaction of <strong>$${transaction.amount.toFixed(2)} ${transaction.currency}</strong> (${transaction.type}) has been successfully confirmed by our team.</p>
                         <p>Your account balance has been updated to <strong>$${user.balance.toFixed(2)}</strong>.</p>
                         <p>You can view your updated balance and transaction history by logging into your dashboard:</p>
-                        <p><a href="${app.locals.baseUrl}/dashboard">Go to Your Dashboard</a></p>
+                        <p><a href="${res.locals.app.locals.baseUrl}/dashboard">Go to Your Dashboard</a></p>
                         <p>Thank you for choosing Tradexa!</p>
                         <p>Best regards,<br>The Tradexa Team</p>
                         <p><a href="mailto:${supportEmail}">${supportEmail}</a></p>
@@ -1619,10 +1637,12 @@ async function startServer() {
     try {
         // This publicUrl is primarily for constructing URLs in emails, etc.
         // For redirects, we are now using req.protocol + '://' + req.get('host') directly.
+        // The res.locals.app.locals.baseUrl is also set in middleware for EJS views.
         const publicUrl = process.env.RAILWAY_STATIC_URL || process.env.RENDER_EXTERNAL_URL || process.env.BASE_URL || `http://localhost:${PORT}`;
 
-        app.locals.baseUrl = publicUrl; // Set app.locals.baseUrl here
+        app.locals.baseUrl = publicUrl; // This line is still useful for initial app-wide configuration if needed, though redirects use req.protocol.
         console.log(`App Base URL set to: ${app.locals.baseUrl}`);
+
 
         // Start the HTTP server (Express and Socket.IO)
         server.listen(PORT, () => {
