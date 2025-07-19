@@ -16,7 +16,6 @@ const LocalStrategy = require('passport-local').Strategy;
 const fs = require('fs');
 const cors = require('cors');
 
-// NEW: Import connect-mongo for persistent session store
 const MongoStore = require('connect-mongo');
 
 const http = require('http');
@@ -35,7 +34,6 @@ mongoose.connect(process.env.MONGODB_URI, {
 .then(() => console.log('MongoDB Connected...'))
 .catch(err => {
     console.error('MongoDB connection error:', err);
-    // Exit process if DB connection fails at startup - critical for app function
     process.exit(1);
 });
 
@@ -75,14 +73,22 @@ passport.use(new LocalStrategy({ usernameField: 'email' }, async (email, passwor
 
 // Passport.js Serialize/Deserialize User for Session Management
 passport.serializeUser((user, done) => {
+    console.log('serializeUser called with user ID:', user.id); // NEW LOG
     done(null, user.id);
 });
 
 passport.deserializeUser(async (id, done) => {
     try {
+        console.log('deserializeUser called with ID:', id); // NEW LOG
         const user = await User.findById(id);
+        if (user) {
+            console.log('User found in deserializeUser:', user.email); // NEW LOG
+        } else {
+            console.log('User NOT found in deserializeUser for ID:', id); // NEW LOG
+        }
         done(null, user);
     } catch (err) {
+        console.error('Error in deserializeUser:', err);
         done(err);
     }
 });
@@ -99,14 +105,12 @@ app.use(express.json()); // Parse JSON bodies
 // UPDATED CORS Configuration for Production and Development
 app.use(cors({
     origin: function (origin, callback) {
-        // Define explicitly allowed origins (your local dev and known production URLs)
         const allowedOrigins = [
-            'http://localhost:2100', // Your local dev URL
-            'http://localhost:8080',  // Common local dev port if you're using a proxy or different setup
-            'https://tradexa-production.up.railway.app' // Your actual Railway production URL
+            'http://localhost:2100',
+            'http://localhost:8080',
+            'https://tradexa-production.up.railway.app'
         ];
 
-        // Add dynamic environment URLs if they exist (Railway, Render, or custom BASE_URL)
         if (process.env.RAILWAY_STATIC_URL) {
             allowedOrigins.push(process.env.RAILWAY_STATIC_URL);
         }
@@ -114,14 +118,11 @@ app.use(cors({
             allowedOrigins.push(process.env.RENDER_EXTERNAL_URL);
         }
         if (process.env.BASE_URL) {
-            allowedOrigins.push(process.env.BASE_URL); // For custom domains or specific dev setups
+            allowedOrigins.push(process.env.BASE_URL);
         }
 
-        // Allow requests with no origin (like mobile apps, Postman, or curl requests)
-        // This is often needed for non-browser clients or direct API calls.
         if (!origin) return callback(null, true);
 
-        // Check if the requesting origin is in our allowed list
         if (allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
@@ -140,14 +141,14 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     name: 'tradexa_session_id',
-    store: MongoStore.create({ // Use MongoStore
-        mongoUrl: process.env.MONGODB_URI, // Your MongoDB connection string
-        collectionName: 'sessions', // Name of the collection to store sessions
-        ttl: 1000 * 60 * 60 * 24 // Session TTL (Time To Live) in seconds, 24 hours
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGODB_URI,
+        collectionName: 'sessions',
+        ttl: 1000 * 60 * 60 * 24 // Session TTL in seconds, 24 hours
     }),
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production (HTTPS)
-        httpOnly: true, // Prevent client-side JS access to cookie
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
         maxAge: 1000 * 60 * 60 * 24 // 24 hours (matches TTL for consistency)
     }
 }));
@@ -158,11 +159,9 @@ app.use(passport.session());
 
 // Global res.locals for EJS templates
 app.use((req, res, next) => {
-    // Dynamically determine the base URL for redirects and links in views
-    // This ensures it's always correct whether on localhost or Railway
     res.locals.app = {
         locals: {
-            baseUrl: `${req.protocol}://${req.get('host')}` // Use req.protocol and req.get('host') directly
+            baseUrl: `${req.protocol}://${req.get('host')}`
         }
     };
     res.locals.user = req.user || null;
@@ -214,14 +213,19 @@ const upload = multer({
 
 // Authentication Middleware
 function isAuthenticated(req, res, next) {
+    console.log('isAuthenticated middleware triggered.'); // NEW LOG
+    console.log('req.sessionID:', req.sessionID); // NEW LOG
+    console.log('req.session:', req.session); // NEW LOG
+    console.log('req.user (from passport):', req.user); // NEW LOG
+
     if (req.isAuthenticated()) {
+        console.log('User is authenticated. Proceeding to next middleware.'); // NEW LOG
         return next();
     }
-    // Handle AJAX/API requests vs. regular page requests
+    console.log('User is NOT authenticated. Redirecting to login.'); // NEW LOG
     if (req.xhr || req.headers.accept.indexOf('json') > -1) {
         return res.status(401).json({ success: false, message: 'Unauthorized. Please log in to access this resource.' });
     }
-    // Redirect to login page with an error message
     res.redirect(`${req.protocol}://${req.get('host')}/login?error=Please log in to access this page.`);
 }
 
@@ -230,11 +234,9 @@ function isAdmin(req, res, next) {
     if (req.session.isAdmin === true) {
         return next();
     }
-    // Handle AJAX/API requests vs. regular page requests
     if (req.xhr || req.headers.accept.indexOf('json') > -1) {
         return res.status(403).json({ success: false, message: 'Forbidden. You do not have admin privileges.' });
     }
-    // Render error page for unauthorized admin access
     res.status(403).render('error', { message: 'Access Denied: You are not authorized to view this page.', title: 'Access Denied' });
 }
 
@@ -242,7 +244,7 @@ function isAdmin(req, res, next) {
 const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
-    secure: process.env.EMAIL_SECURE === 'true', // Use 'true' for port 465, 'false' for 587
+    secure: process.env.EMAIL_SECURE === 'true',
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
@@ -473,23 +475,22 @@ app.post('/login', (req, res, next) => {
         }
         if (!user) {
             req.session.messages = [info.message];
-            return res.redirect(`${req.protocol}://${req.get('host')}/login`); // Corrected absolute redirect
+            return res.redirect(`${req.protocol}://${req.get('host')}/login`);
         }
         req.logIn(user, (err) => {
             if (err) {
                 console.error('req.logIn error:', err);
                 return next(err);
             }
-            // Set session cookie maxAge based on "Remember Me"
             if (req.body.rememberMe) {
-                req.session.cookie.maxAge = 1000 * 60 * 60 * 24 * 7; // 7 days
+                req.session.cookie.maxAge = 1000 * 60 * 60 * 24 * 7;
                 console.log('User session extended for 7 days (Remember Me)');
             } else {
-                req.session.cookie.maxAge = 1000 * 60 * 60 * 24; // 24 hours
+                req.session.cookie.maxAge = 1000 * 60 * 60 * 24;
                 console.log('User session set to default 24 hours');
             }
             console.log('User logged in successfully:', user.email);
-            return res.redirect(`${req.protocol}://${req.get('host')}/dashboard`); // Corrected absolute redirect
+            return res.redirect(`${req.protocol}://${req.get('host')}/dashboard`);
         });
     })(req, res, next);
 });
@@ -504,7 +505,6 @@ app.post('/signup', async (req, res) => {
     const { fullName, email, phoneNumber, gender, country, password, confirmPassword } = req.body;
 
     console.log('--- User Registration Attempt ---');
-    // Input validation
     if (!fullName || !email || !phoneNumber || !gender || !country || !password || !confirmPassword) {
         return res.render('register', { error: 'All fields are required.', success: null });
     }
@@ -524,18 +524,16 @@ app.post('/signup', async (req, res) => {
             return res.render('register', { error: 'Email already registered. Please login or use a different email.', success: null });
         }
 
-        // Generate verification token
         const verificationToken = crypto.randomBytes(32).toString('hex');
-        const verificationTokenExpires = Date.now() + 3600000 * 24; // 24 hours
+        const verificationTokenExpires = Date.now() + 3600000 * 24;
 
-        // Create new user
         const newUser = new User({
             fullName,
             email,
             phoneNumber,
             gender,
             country,
-            password: password, // Password will be hashed by pre-save hook in User model
+            password: password,
             isVerified: false,
             verificationToken,
             verificationTokenExpires,
@@ -551,11 +549,9 @@ app.post('/signup', async (req, res) => {
 
         await newUser.save();
 
-        // Construct verification URL using app.locals.baseUrl (which now correctly uses req.protocol/host)
-        const verificationUrl = `${res.locals.app.locals.baseUrl}/verify-email/${verificationToken}`; // Use res.locals.app.locals.baseUrl
+        const verificationUrl = `${res.locals.app.locals.baseUrl}/verify-email/${verificationToken}`;
         console.log(`--- VERIFICATION EMAIL URL BEING SENT: ${verificationUrl} ---`);
 
-        // Send verification email
         const mailOptions = {
             from: `"Tradexa" <${supportEmail}>`,
             to: newUser.email,
@@ -574,7 +570,7 @@ app.post('/signup', async (req, res) => {
         await transporter.sendMail(mailOptions);
         console.log('Verification email sent to:', newUser.email);
 
-        return res.redirect(`${req.protocol}://${req.get('host')}/login?success=Registration successful! Please check your email to verify your account before logging in.`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/login?success=Registration successful! Please check your email to verify your account before logging in.`);
 
     } catch (error) {
         console.error('Error during user registration:', error);
@@ -582,7 +578,7 @@ app.post('/signup', async (req, res) => {
         let errorMessage = 'Registration failed. Please try again.';
         if (error.name === 'ValidationError') {
             errorMessage = Object.values(error.errors).map(err => err.message).join(', ');
-        } else if (error.code === 11000) { // Duplicate key error (e.g., email already exists)
+        } else if (error.code === 11000) {
             errorMessage = 'This email is already registered. Please login or use a different email.';
         }
 
@@ -597,24 +593,24 @@ app.get('/verify-email/:token', async (req, res) => {
 
         const user = await User.findOne({
             verificationToken: token,
-            verificationTokenExpires: { $gt: Date.now() } // Token must not be expired
+            verificationTokenExpires: { $gt: Date.now() }
         });
 
         if (!user) {
-            return res.redirect(`${req.protocol}://${req.get('host')}/login?error=Email verification link is invalid or has expired. Please try registering again.`); // Corrected absolute redirect
+            return res.redirect(`${req.protocol}://${req.get('host')}/login?error=Email verification link is invalid or has expired. Please try registering again.`);
         }
 
         user.isVerified = true;
-        user.verificationToken = undefined; // Clear token after use
+        user.verificationToken = undefined;
         user.verificationTokenExpires = undefined;
         await user.save();
 
         console.log('User email verified successfully:', user.email);
-        return res.redirect(`${req.protocol}://${req.get('host')}/login?success=Your email has been successfully verified! You can now log in.`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/login?success=Your email has been successfully verified! You can now log in.`);
 
     } catch (error) {
         console.error('Error during email verification:', error);
-        return res.redirect(`${req.protocol}://${req.get('host')}/login?error=An error occurred during email verification. Please try again.`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/login?error=An error occurred during email verification. Please try again.`);
     }
 });
 
@@ -638,22 +634,19 @@ app.post('/forgot-password', async (req, res) => {
 
         if (!user) {
             console.log('Forgot password request for unregistered email:', email);
-            // Always redirect to success to prevent email enumeration attacks
-            return res.redirect(`${req.protocol}://${req.get('host')}/forgot-password?success=If that email address is registered, you will receive a password reset link.`); // Corrected absolute redirect
+            return res.redirect(`${req.protocol}://${req.get('host')}/forgot-password?success=If that email address is registered, you will receive a password reset link.`);
         }
 
-        // Generate reset token
         const resetToken = crypto.randomBytes(32).toString('hex');
-        const resetTokenExpires = Date.now() + 3600000; // 1 hour
+        const resetTokenExpires = Date.now() + 3600000;
 
         user.resetPasswordToken = resetToken;
         user.resetPasswordExpires = resetTokenExpires;
         await user.save();
 
-        // Construct reset URL using res.locals.app.locals.baseUrl (which now correctly uses req.protocol/host)
-        const resetUrl = `${res.locals.app.locals.baseUrl}/reset-password/${resetToken}`; // Use res.locals.app.locals.baseUrl
+        const resetUrl = `${res.locals.app.locals.baseUrl}/reset-password/${resetToken}`;
+        console.log(`--- PASSWORD RESET EMAIL URL BEING SENT: ${resetUrl} ---`); // NEW LOG
 
-        // Send reset email
         const mailOptions = {
             from: `"Tradexa" <${supportEmail}>`,
             to: user.email,
@@ -672,7 +665,7 @@ app.post('/forgot-password', async (req, res) => {
         await transporter.sendMail(mailOptions);
         console.log('Password reset email sent to:', user.email);
 
-        return res.redirect(`${req.protocol}://${req.get('host')}/forgot-password?success=If that email address is registered, you will receive a password reset link.`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/forgot-password?success=If that email address is registered, you will receive a password reset link.`);
 
     } catch (error) {
         console.error('Error during forgot password request:', error);
@@ -691,13 +684,13 @@ app.get('/reset-password/:token', async (req, res) => {
         });
 
         if (!user) {
-            return res.redirect(`${req.protocol}://${req.get('host')}/login?error=Password reset link is invalid or has expired. Please request a new one.`); // Corrected absolute redirect
+            return res.redirect(`${req.protocol}://${req.get('host')}/login?error=Password reset link is invalid or has expired. Please request a new one.`);
         }
 
         res.render('reset-password', { token, error: null, success: null });
     } catch (error) {
         console.error('Error rendering reset password page:', error);
-        return res.redirect(`${req.protocol}://${req.get('host')}/login?error=An error occurred while trying to reset your password. Please try again.`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/login?error=An error occurred while trying to reset your password. Please try again.`);
     }
 });
 
@@ -716,7 +709,6 @@ app.post('/reset-password/:token', async (req, res) => {
             return res.render('reset-password', { token, error: 'Password reset link is invalid or has expired. Please request a new one.', success: null });
         }
 
-        // Input validation
         if (!password || !confirmPassword) {
             return res.render('reset-password', { token, error: 'Please enter and confirm your new password.', success: null });
         }
@@ -727,14 +719,13 @@ app.post('/reset-password/:token', async (req, res) => {
             return res.render('reset-password', { token, error: 'Password must be at least 8 characters long.', success: null });
         }
 
-        // Update user password and clear tokens
-        user.password = password; // Password will be hashed by pre-save hook
+        user.password = password;
         user.resetPasswordToken = undefined;
         user.resetPasswordExpires = undefined;
         await user.save();
 
         console.log('Password successfully reset for user:', user.email);
-        return res.redirect(`${req.protocol}://${req.get('host')}/login?success=Your password has been successfully reset. You can now log in with your new password.`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/login?success=Your password has been successfully reset. You can now log in with your new password.`);
 
     } catch (error) {
         console.error('Error during password reset:', error);
@@ -754,8 +745,8 @@ app.get('/logout', (req, res, next) => {
                 console.error('Session destruction error during logout:', err);
                 return next(err);
             }
-            res.clearCookie('tradexa_session_id'); // Clear session cookie
-            res.redirect(`${req.protocol}://${req.get('host')}/login?success=You have been logged out.`); // Corrected absolute redirect
+            res.clearCookie('tradexa_session_id');
+            res.redirect(`${req.protocol}://${req.get('host')}/login?success=You have been logged out.`);
         });
     });
 });
@@ -803,7 +794,6 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
             console.log('Dashboard: User has no active plan or plan details missing.');
         }
 
-        // Ensure user.investments is an array before mapping
         const chartData = Array.isArray(user.investments) ? user.investments.map(inv => ({
             date: inv.date.toISOString().split('T')[0],
             value: inv.value
@@ -821,7 +811,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
         });
         console.log('Dashboard: res.render called successfully.');
     } catch (err) {
-        console.error('Dashboard: Error rendering dashboard:', err); // Catch-all for rendering errors
+        console.error('Dashboard: Error rendering dashboard:', err);
         res.status(500).send('Server Error during dashboard rendering. Check logs for details.');
     }
 });
@@ -848,7 +838,7 @@ app.get('/my-plans', isAuthenticated, async (req, res) => {
                 }
             }
         }
-        currentProjectedValue = Math.max(currentProjectedValue, user.initialInvestment); // Ensure projected value doesn't go below initial
+        currentProjectedValue = Math.max(currentProjectedValue, user.initialInvestment);
 
         const chartData = user.investments.map(inv => ({
             date: inv.date.toISOString().split('T')[0],
@@ -868,7 +858,7 @@ app.get('/my-plans', isAuthenticated, async (req, res) => {
 
     } catch (error) {
         console.error('Error fetching user plans:', error);
-        return res.redirect(`${req.protocol}://${req.get('host')}/dashboard?error=Could not load your plans. Please try again.`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/dashboard?error=Could not load your plans. Please try again.`);
     }
 });
 
@@ -878,17 +868,17 @@ app.post('/select-plan', isAuthenticated, async (req, res) => {
     const user = req.user;
 
     if (!planName || !investmentPlans[planName]) {
-        return res.redirect(`${req.protocol}://${req.get('host')}/my-plans?error=Invalid plan selected.`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/my-plans?error=Invalid plan selected.`);
     }
 
     if (user.currentPlan !== 'None' && user.currentPlan !== planName) {
-        return res.redirect(`${req.protocol}://${req.get('host')}/my-plans?error=You already have an active plan. Consider topping up your existing plan.`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/my-plans?error=You already have an active plan. Consider topping up your existing plan.`);
     }
 
     req.session.selectedDepositPlan = planName;
     console.log(`User ${user.email} selected plan: ${planName} for deposit.`);
 
-    res.redirect(`${req.protocol}://${req.get('host')}/deposit?success=Plan selected! Now enter your deposit amount.`); // Corrected absolute redirect
+    res.redirect(`${req.protocol}://${req.get('host')}/deposit?success=Plan selected! Now enter your deposit amount.`);
 });
 
 // Deposit Page
@@ -915,7 +905,7 @@ app.get('/deposit', isAuthenticated, async (req, res) => {
             }
             console.log(`User ${user.email} is selecting a new plan: ${selectedPlanName}.`);
         } else {
-            return res.redirect(`${req.protocol}://${req.get('host')}/my-plans?error=Please select an investment plan before making a deposit.`); // Corrected absolute redirect
+            return res.redirect(`${req.protocol}://${req.get('host')}/my-plans?error=Please select an investment plan before making a deposit.`);
         }
 
         res.render('deposit', {
@@ -940,9 +930,8 @@ app.post('/deposit', isAuthenticated, async (req, res) => {
     const depositAmount = parseFloat(amount);
     const user = req.user;
 
-    // Input validation
     if (isNaN(depositAmount) || depositAmount <= 0) {
-        return res.redirect(`${req.protocol}://${req.get('host')}/deposit?error=Please enter a valid deposit amount.`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/deposit?error=Please enter a valid deposit amount.`);
     }
 
     let selectedPlanName = req.session.selectedDepositPlan;
@@ -954,33 +943,31 @@ app.post('/deposit', isAuthenticated, async (req, res) => {
         if (user.currentPlan === 'None' || user.currentPlan === selectedPlanName) {
             isNewActivation = true;
         } else {
-            return res.redirect(`${req.protocol}://${req.get('host')}/my-plans?error=You already have an active ${user.currentPlan} plan. Please wait for it to complete or contact support to change plans.`); // Corrected absolute redirect
+            return res.redirect(`${req.protocol}://${req.get('host')}/my-plans?error=You already have an active ${user.currentPlan} plan. Please wait for it to complete or contact support to change plans.`);
         }
     } else if (user.currentPlan !== 'None') {
         planToProcess = investmentPlans[user.currentPlan];
         selectedPlanName = user.currentPlan;
         isNewActivation = false;
     } else {
-        return res.redirect(`${req.protocol}://${req.get('host')}/my-plans?error=No plan selected or invalid plan. Please choose a plan first.`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/my-plans?error=No plan selected or invalid plan. Please choose a plan first.`);
     }
 
-    // Plan-specific deposit validations
     if (!isNewActivation && planToProcess.maxDeposit !== Infinity && (user.initialInvestment + depositAmount > planToProcess.maxDeposit)) {
-        return res.redirect(`${req.protocol}://${req.get('host')}/deposit?error=Your total investment for the ${selectedPlanName} plan cannot exceed $${planToProcess.maxDeposit}. Please adjust your top-up amount.`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/deposit?error=Your total investment for the ${selectedPlanName} plan cannot exceed $${planToProcess.maxDeposit}. Please adjust your top-up amount.`);
     }
     if (isNewActivation && selectedPlanName !== 'Starter' && depositAmount < planToProcess.minDeposit) {
-        return res.redirect(`${req.protocol}://${req.get('host')}/deposit?error=Minimum deposit for ${selectedPlanName} Plan is $${planToProcess.minDeposit}.`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/deposit?error=Minimum deposit for ${selectedPlanName} Plan is $${planToProcess.minDeposit}.`);
     }
     if (isNewActivation && selectedPlanName === 'Starter') {
         if (depositAmount + user.pendingStarterDeposit > planToProcess.maxDeposit) {
-            return res.redirect(`${req.protocol}://${req.get('host')}/deposit?error=Your total Starter deposits cannot exceed $${planToProcess.maxDeposit}. Please adjust your amount.`); // Corrected absolute redirect
+            return res.redirect(`${req.protocol}://${req.get('host')}/deposit?error=Your total Starter deposits cannot exceed $${planToProcess.maxDeposit}. Please adjust your amount.`);
         }
     }
 
-    // Currency validation
     const supportedCurrencies = Object.keys(cryptoWallets);
     if (!paymentCurrency || !supportedCurrencies.includes(paymentCurrency)) {
-        return res.redirect(`${req.protocol}://${req.get('host')}/deposit?error=Please select a valid payment currency.`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/deposit?error=Please select a valid payment currency.`);
     }
 
     try {
@@ -995,7 +982,6 @@ app.post('/deposit', isAuthenticated, async (req, res) => {
             transactionType = 'Top-Up';
         }
 
-        // Create and save new transaction
         const newTransaction = new Transaction({
             userId: user._id,
             amount: depositAmount,
@@ -1008,7 +994,7 @@ app.post('/deposit', isAuthenticated, async (req, res) => {
         await newTransaction.save();
         console.log('New pending transaction recorded:', newTransaction);
 
-        delete req.session.selectedDepositPlan; // Clear session variable
+        delete req.session.selectedDepositPlan;
 
         const walletAddressToDisplay = cryptoWallets[paymentCurrency];
         let currencyLabel;
@@ -1021,8 +1007,7 @@ app.post('/deposit', isAuthenticated, async (req, res) => {
             default: currencyLabel = paymentCurrency;
         }
 
-        // Redirect to payment instructions page
-        return res.redirect(`${req.protocol}://${req.get('host')}/payment-instructions?amount=${depositAmount}&currency=${currencyLabel}&address=${walletAddressToDisplay}&plan=${selectedPlanName}`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/payment-instructions?amount=${depositAmount}&currency=${currencyLabel}&address=${walletAddressToDisplay}&plan=${selectedPlanName}`);
 
     } catch (error) {
         console.error('Error during deposit/top-up:', error);
@@ -1030,7 +1015,7 @@ app.post('/deposit', isAuthenticated, async (req, res) => {
         if (selectedPlanName) {
             redirectError += `&selectedPlan=${selectedPlanName}`;
         }
-        return res.redirect(`${req.protocol}://${req.get('host')}/deposit?error=${redirectError}`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/deposit?error=${redirectError}`);
     }
 });
 
@@ -1038,7 +1023,7 @@ app.post('/deposit', isAuthenticated, async (req, res) => {
 app.get('/payment-instructions', isAuthenticated, (req, res) => {
     const { amount, currency, address, plan } = req.query;
     if (!amount || !currency || !address || !plan) {
-        return res.redirect(`${req.protocol}://${req.get('host')}/dashboard?error=Missing payment details.`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/dashboard?error=Missing payment details.`);
     }
     res.render('paymentinstructions', {
         amount,
@@ -1065,7 +1050,7 @@ app.get('/transactions', isAuthenticated, async (req, res) => {
     }
     catch (error) {
         console.error('Error fetching user transactions:', error);
-        res.redirect(`${req.protocol}://${req.get('host')}/dashboard?error=Could not load transaction history. Please try again.`); // Corrected absolute redirect
+        res.redirect(`${req.protocol}://${req.get('host')}/dashboard?error=Could not load transaction history. Please try again.`);
     }
 });
 
@@ -1131,7 +1116,6 @@ app.post('/profile/upload', isAuthenticated, (req, res, next) => {
             const publicFilePath = '/uploads/profile_pictures/' + req.file.filename;
             console.log('Attempting to save public file path to DB:', publicFilePath);
 
-            // Delete old profile picture if it exists and is a local upload
             if (user.profilePicture && user.profilePicture.startsWith('/uploads/profile_pictures/')) {
                 const oldFilePath = path.join(__dirname, 'public', user.profilePicture);
                 fs.unlink(oldFilePath, (unlinkErr) => {
@@ -1175,7 +1159,6 @@ app.post('/profile/update', isAuthenticated, async (req, res) => {
         const { fullName, phoneNumber, gender, country } = req.body;
         console.log('Received data for profile update:', { fullName, phoneNumber, gender, country });
 
-        // Input validation
         if (!fullName || !phoneNumber || !gender || !country) {
             console.warn('Validation failed for profile update: Missing required fields.');
             return res.status(400).json({ success: false, message: 'All fields (Full Name, Phone Number, Gender, Country) are required.' });
@@ -1189,7 +1172,6 @@ app.post('/profile/update', isAuthenticated, async (req, res) => {
         await user.save();
         console.log(`User ${user.email} profile details updated successfully in DB.`);
 
-        // Re-login user to refresh session data (e.g., if fullName is used in header)
         req.login(user, (err) => {
             if (err) {
                 console.error('Error re-logging in user after profile update:', err);
@@ -1217,10 +1199,9 @@ app.get('/withdraw', isAuthenticated, async (req, res) => {
     try {
         const user = req.user;
 
-        const minWithdrawal = 50; // Minimum withdrawal amount
+        const minWithdrawal = 50;
         let withdrawableBalance = 0;
 
-        // Calculate withdrawable balance based on plan maturity
         if (user.currentPlan !== 'None' && user.planStartDate && user.planEndDate) {
             const planDetails = investmentPlans[user.currentPlan];
 
@@ -1255,7 +1236,7 @@ app.get('/withdraw', isAuthenticated, async (req, res) => {
         });
     } catch (error) {
         console.error('Error rendering withdraw page:', error);
-        res.redirect(`${req.protocol}://${req.get('host')}/dashboard?error=Could not load withdraw page. Please try again.`); // Corrected absolute redirect
+        res.redirect(`${req.protocol}://${req.get('host')}/dashboard?error=Could not load withdraw page. Please try again.`);
     }
 });
 
@@ -1265,7 +1246,6 @@ app.post('/withdraw', isAuthenticated, async (req, res) => {
     const withdrawalAmount = parseFloat(amount);
     const user = req.user;
 
-    // Input validation
     if (isNaN(withdrawalAmount) || withdrawalAmount <= 0) {
         return res.status(400).json({ success: false, message: 'Please enter a valid withdrawal amount.' });
     }
@@ -1283,7 +1263,6 @@ app.post('/withdraw', isAuthenticated, async (req, res) => {
         return res.status(400).json({ success: false, message: `Please enter your ${currency} wallet address.` });
     }
 
-    // Check if withdrawal is allowed based on plan maturity
     let isWithdrawalAllowed = false;
     if (user.currentPlan !== 'None' && user.planStartDate && user.planEndDate) {
         const planDetails = investmentPlans[user.currentPlan];
@@ -1311,22 +1290,20 @@ app.post('/withdraw', isAuthenticated, async (req, res) => {
     }
 
     try {
-        user.balance -= withdrawalAmount; // Deduct from balance
+        user.balance -= withdrawalAmount;
         await user.save();
 
-        // Create new withdrawal transaction
         const newTransaction = new Transaction({
             userId: user._id,
             type: 'Withdrawal',
             amount: withdrawalAmount,
             currency: currency,
             walletAddress: walletAddress,
-            status: 'Pending', // Pending admin approval
+            status: 'Pending',
             date: new Date()
         });
         await newTransaction.save();
 
-        // Send withdrawal request email to user
         const mailOptions = {
             from: `"Tradexa" <${supportEmail}>`,
             to: user.email,
@@ -1344,7 +1321,7 @@ app.post('/withdraw', isAuthenticated, async (req, res) => {
         };
         await transporter.sendMail(mailOptions);
 
-        await emitBalanceUpdate(user._id); // Update client-side balance
+        await emitBalanceUpdate(user._id);
 
         res.status(200).json({ success: true, message: 'Withdrawal request submitted successfully! It will be processed shortly.', supportEmail: supportEmail });
 
@@ -1367,7 +1344,7 @@ app.post('/admin/login', (req, res, next) => {
 
     if (!email || !password) {
         req.session.messages = ['Please enter both email and password.'];
-        return res.redirect(`${req.protocol}://${req.get('host')}/admin/login`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/admin/login`);
     }
 
     const adminEmail = process.env.ADMIN_EMAIL;
@@ -1375,25 +1352,25 @@ app.post('/admin/login', (req, res, next) => {
 
     if (email !== adminEmail) {
         req.session.messages = ['Invalid admin credentials.'];
-        return res.redirect(`${req.protocol}://${req.get('host')}/admin/login`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/admin/login`);
     }
 
     bcrypt.compare(password, adminPasswordHash)
         .then(isMatch => {
             if (!isMatch) {
                 req.session.messages = ['Invalid admin credentials.'];
-                return res.redirect(`${req.protocol}://${req.get('host')}/admin/login`); // Corrected absolute redirect
+                return res.redirect(`${req.protocol}://${req.get('host')}/admin/login`);
             }
 
-            req.session.isAdmin = true; // Set admin session flag
-            req.session.isLoggedIn = true; // General login flag (can be used for both user/admin)
+            req.session.isAdmin = true;
+            req.session.isLoggedIn = true;
             console.log('Admin logged in successfully:', email);
-            return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard`); // Corrected absolute redirect
+            return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard`);
         })
         .catch(err => {
             console.error('Error during admin login bcrypt compare:', err);
             req.session.messages = ['An error occurred during login.'];
-            return res.redirect(`${req.protocol}://${req.get('host')}/admin/login`); // Corrected absolute redirect
+            return res.redirect(`${req.protocol}://${req.get('host')}/admin/login`);
         });
 });
 
@@ -1426,18 +1403,18 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
     const { transactionId, action } = req.body;
 
     if (!transactionId || !action || !['confirm', 'reject'].includes(action)) {
-        return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard?error=Invalid transaction ID or action.`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard?error=Invalid transaction ID or action.`);
     }
 
     try {
         const transaction = await Transaction.findById(transactionId);
 
         if (!transaction) {
-            return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard?error=Transaction not found.`); // Corrected absolute redirect
+            return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard?error=Transaction not found.`);
         }
 
         if (transaction.status !== 'Pending') {
-            return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard?error=Transaction is already ${transaction.status}.`); // Corrected absolute redirect
+            return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard?error=Transaction is already ${transaction.status}.`);
         }
 
         if (action === 'confirm') {
@@ -1447,15 +1424,13 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
             const user = await User.findById(transaction.userId);
             if (user) {
                 if (transaction.type === 'Deposit' || transaction.type === 'Top-Up') {
-                    user.balance += transaction.amount; // Add deposit/top-up to balance
+                    user.balance += transaction.amount;
 
-                    // Logic for activating/topping up plans
                     if (transaction.type === 'Deposit' && transaction.planName === 'Starter') {
                         const starterMinActivation = investmentPlans.Starter.minDeposit;
                         user.pendingStarterDeposit = user.pendingStarterDeposit || 0;
 
                         if (user.pendingStarterDeposit >= starterMinActivation && user.currentPlan === 'None') {
-                            // Activate Starter plan if accumulated deposit meets min and no active plan
                             user.currentPlan = 'Starter';
                             user.initialInvestment = user.pendingStarterDeposit;
                             user.dailyROI = investmentPlans.Starter.dailyROI;
@@ -1463,8 +1438,7 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
                             user.planEndDate = new Date(user.planStartDate);
                             user.planEndDate.setDate(user.planEndDate.getDate() + investmentPlans.Starter.durationDays);
                             user.investments.push({ date: new Date(), value: user.balance });
-                            user.pendingStarterDeposit = 0; // Clear pending
-                            // Set lastProfitUpdate to yesterday to trigger profit calculation on next cron run
+                            user.pendingStarterDeposit = 0;
                             const yesterday = new Date();
                             yesterday.setDate(yesterday.getDate() - 1);
                             yesterday.setHours(0, 0, 0, 0);
@@ -1472,10 +1446,8 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
 
                             console.log(`User ${user.email} activated Starter plan with $${user.initialInvestment} (accumulated and confirmed).`);
                         } else if (user.currentPlan === 'Starter' && user.pendingStarterDeposit < starterMinActivation) {
-                            // Continue accumulating Starter deposits if not yet at min
                             console.log(`Confirmed $${transaction.amount} for Starter accumulation. User ${user.email} total pending: $${user.pendingStarterDeposit}.`);
                         } else if (user.currentPlan === 'Starter' && user.pendingStarterDeposit >= starterMinActivation && user.initialInvestment === 0) {
-                            // This case handles if multiple Starter deposits accumulated to meet min after initial 'None'
                             user.currentPlan = 'Starter';
                             user.initialInvestment = user.pendingStarterDeposit;
                             user.dailyROI = investmentPlans.Starter.dailyROI;
@@ -1493,7 +1465,6 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
 
 
                     } else if (transaction.type === 'Deposit') {
-                        // Activate new plan (non-Starter)
                         user.currentPlan = transaction.planName;
                         user.initialInvestment = transaction.amount;
                         user.dailyROI = investmentPlans[transaction.planName].dailyROI;
@@ -1508,7 +1479,6 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
 
                         console.log(`User ${user.email} activated ${transaction.planName} plan with $${user.initialInvestment} (confirmed).`);
                     } else if (transaction.type === 'Top-Up') {
-                        // Top-up existing plan
                         user.initialInvestment += transaction.amount;
                         user.investments.push({ date: new Date(), value: user.balance });
                         console.log(`User ${user.email} topped up their ${transaction.planName} plan with $${transaction.amount}. New confirmed initial investment: $${user.initialInvestment}.`);
@@ -1517,12 +1487,11 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
                     console.log(`Withdrawal transaction ${transaction._id} confirmed for user ${user.email}. Balance already deducted.`);
                 }
 
-                await user.save(); // Save user changes
+                await user.save();
                 console.log(`User ${user.email} balance updated to $${user.balance.toFixed(2)} after transaction ${transaction._id} confirmation.`);
 
-                await emitBalanceUpdate(user._id); // Emit real-time update
+                await emitBalanceUpdate(user._id);
 
-                // Send transaction confirmation email to user
                 const mailOptions = {
                     from: `"Tradexa" <${supportEmail}>`,
                     to: user.email,
@@ -1549,15 +1518,14 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
             } else {
                 console.warn(`User not found for transaction ${transaction._id}. Balance not updated and email not sent.`);
             }
-            await transaction.save(); // Save transaction status
-            return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard?success=Transaction confirmed successfully!`); // Corrected absolute redirect
+            await transaction.save();
+            return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard?success=Transaction confirmed successfully!`);
 
         } else if (action === 'reject') {
             transaction.status = 'Rejected';
             transaction.confirmedAt = new Date();
             await transaction.save();
 
-            // Refund logic for rejected transactions
             if (transaction.type === 'Deposit' && transaction.planName === 'Starter') {
                 const user = await User.findById(transaction.userId);
                 if (user && user.pendingStarterDeposit >= transaction.amount) {
@@ -1568,19 +1536,19 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
             } else if (transaction.type === 'Withdrawal') {
                 const user = await User.findById(transaction.userId);
                 if (user) {
-                    user.balance += transaction.amount; // Return funds for rejected withdrawal
+                    user.balance += transaction.amount;
                     await user.save();
                     console.log(`Rejected withdrawal. Funds returned to user ${user.email}. New balance: $${user.balance.toFixed(2)}`);
                     await emitBalanceUpdate(user._id);
                 }
             }
             console.log(`Transaction ${transaction._id} rejected.`);
-            return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard?success=Transaction rejected.`); // Corrected absolute redirect
+            return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard?success=Transaction rejected.`);
         }
 
     } catch (error) {
         console.error('Error processing admin transaction action:', error);
-        return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard?error=An error occurred while processing the transaction.`); // Corrected absolute redirect
+        return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard?error=An error occurred while processing the transaction.`);
     }
 });
 
@@ -1598,16 +1566,16 @@ app.get('/admin/reset-plan/:email', isAdmin, async (req, res) => {
                 initialInvestment: 0,
                 investments: [],
                 pendingStarterDeposit: 0,
-                balance: 0, // Reset balance to 0
-                profilePicture: '', // Clear profile picture path
+                balance: 0,
+                profilePicture: '',
                 lastProfitUpdate: null
             },
-            { new: true } // Return the updated document
+            { new: true }
         );
 
         if (user) {
             console.log(`Admin: User ${email}'s plan, balance, and profile picture have been reset.`);
-            await emitBalanceUpdate(user._id); // Update client-side
+            await emitBalanceUpdate(user._id);
             res.send(`User ${email}'s plan, balance, and profile picture have been reset. You can now try depositing again.`);
         } else {
             res.status(404).send(`User with email ${email} not found.`);
@@ -1623,36 +1591,28 @@ app.get('/admin/logout', (req, res) => {
     req.session.destroy(err => {
         if (err) {
             console.error('Error destroying admin session:', err);
-            return res.redirect(`${req.protocol}://${req.get('host')}/admin/login?error=Error logging out.`); // Corrected absolute redirect
+            return res.redirect(`${req.protocol}://${req.get('host')}/admin/login?error=Error logging out.`);
         }
-        res.clearCookie('tradexa_session_id'); // Clear session cookie
-        res.redirect(`${req.protocol}://${req.get('host')}/admin/login?success=You have been logged out from admin panel.`); // Corrected absolute redirect
+        res.clearCookie('tradexa_session_id');
+        res.redirect(`${req.protocol}://${req.get('host')}/admin/login?success=You have been logged out from admin panel.`);
     });
 });
 
 const PORT = process.env.PORT || 2100;
 
-// UPDATED startServer function to robustly determine publicUrl
 async function startServer() {
     try {
-        // This publicUrl is primarily for constructing URLs in emails, etc.
-        // For redirects, we are now using req.protocol + '://' + req.get('host') directly.
-        // The res.locals.app.locals.baseUrl is also set in middleware for EJS views.
         const publicUrl = process.env.RAILWAY_STATIC_URL || process.env.RENDER_EXTERNAL_URL || process.env.BASE_URL || `http://localhost:${PORT}`;
 
-        app.locals.baseUrl = publicUrl; // This line is still useful for initial app-wide configuration if needed, though redirects use req.protocol.
+        app.locals.baseUrl = publicUrl;
         console.log(`App Base URL set to: ${app.locals.baseUrl}`);
 
-
-        // Start the HTTP server (Express and Socket.IO)
         server.listen(PORT, () => {
             console.log(`Express and Socket.IO server listening on port ${PORT}`);
             console.log(`Access Tradexa at ${publicUrl}`);
         });
     } catch (error) {
         console.error('Failed to start server:', error);
-        // Fallback to plain http for local if startServer fails due to external URL issues
-        // This catch block is mostly for local development issues, as Railway handles port exposure.
         app.listen(PORT, () => {
             console.log(`Express server listening on port ${PORT} (server.listen failed)`);
             console.log(`Access Tradexa at http://localhost:${PORT}`);
@@ -1660,4 +1620,4 @@ async function startServer() {
     }
 }
 
-startServer(); // Initialize and start the server
+startServer();
