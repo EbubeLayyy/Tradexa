@@ -8,7 +8,7 @@ const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
-const User = require('./models/User'); // Ensure this path is correct: './models/User'
+const User = require('./models/User');
 const Transaction = require('./models/Transaction');
 const multer = require('multer');
 const passport = require('passport');
@@ -26,6 +26,9 @@ const cron = require('node-cron');
 
 console.log('Railway PORT env var (process.env.PORT):', process.env.PORT);
 console.log('Railway MONGODB_URI env var (process.env.MONGODB_URI is present):', !!process.env.MONGODB_URI);
+
+// NEW: Trust proxy headers for secure cookies in production
+app.set('trust proxy', 1); // Trust the first proxy (Railway's load balancer)
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI, {
@@ -72,34 +75,31 @@ passport.use(new LocalStrategy({ usernameField: 'email' }, async (email, passwor
 
 // Passport.js Serialize/Deserialize User for Session Management
 passport.serializeUser((user, done) => {
-    console.log('serializeUser: User ID being serialized:', user.id); // More specific log
+    console.log('serializeUser: User ID being serialized:', user.id);
     done(null, user.id);
 });
 
 passport.deserializeUser(async (id, done) => {
     try {
-        console.log('deserializeUser: Attempting to find user with ID:', id); // More specific log
-        console.log('deserializeUser: Type of ID:', typeof id); // Log type of ID
-        
-        // This is the critical part to debug
-        const user = await User.findById(id); 
+        console.log('deserializeUser: Attempting to find user with ID:', id);
+        console.log('deserializeUser: Type of ID:', typeof id);
+
+        const user = await User.findById(id);
 
         if (user) {
             console.log('deserializeUser: Successfully found user:', user.email);
         } else {
-            console.warn('deserializeUser: User NOT found for ID:', id); // Changed to warn
-            // Log if the User model itself is available
-            console.warn('deserializeUser: Is User model available?', !!User); 
-            // Attempt to find any user to check general DB connectivity for the User model
-            const anyUser = await User.findOne({}); 
-            console.warn('deserializeUser: Found any user?', !!anyUser); 
+            console.warn('deserializeUser: User NOT found for ID:', id);
+            console.warn('deserializeUser: Is User model available?', !!User);
+            const anyUser = await User.findOne({});
+            console.warn('deserializeUser: Found any user?', !!anyUser);
             if (anyUser) {
                 console.warn('deserializeUser: Example user found:', anyUser.email);
             }
         }
         done(null, user);
     } catch (err) {
-        console.error('deserializeUser: Error finding user:', err); // More specific error log
+        console.error('deserializeUser: Error finding user:', err);
         done(err);
     }
 });
@@ -215,9 +215,16 @@ const upload = multer({
 });
 
 function isAuthenticated(req, res, next) {
+    console.log('isAuthenticated middleware triggered.');
+    console.log('req.sessionID:', req.sessionID);
+    console.log('req.session:', req.session);
+    console.log('req.user (from passport):', req.user); // This is the crucial one
+
     if (req.isAuthenticated()) {
+        console.log('User is authenticated. Proceeding to next middleware.');
         return next();
     }
+    console.log('User is NOT authenticated. Redirecting to login.');
     if (req.xhr || req.headers.accept.indexOf('json') > -1) {
         return res.status(401).json({ success: false, message: 'Unauthorized. Please log in to access this resource.' });
     }
