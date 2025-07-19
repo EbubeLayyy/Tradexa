@@ -27,8 +27,7 @@ const cron = require('node-cron');
 console.log('Railway PORT env var (process.env.PORT):', process.env.PORT);
 console.log('Railway MONGODB_URI env var (process.env.MONGODB_URI is present):', !!process.env.MONGODB_URI);
 
-// NEW: Trust proxy headers for secure cookies in production
-app.set('trust proxy', 1); // Trust the first proxy (Railway's load balancer)
+app.set('trust proxy', 1);
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI, {
@@ -116,7 +115,8 @@ app.use(cors({
         const allowedOrigins = [
             'http://localhost:2100',
             'http://localhost:8080',
-            'https://tradexa-production.up.railway.app'
+            'https://tradexa-production.up.railway.app',
+            'https://tradexainvest.com' // NEW: Add your custom domain here
         ];
 
         if (process.env.RAILWAY_STATIC_URL) {
@@ -218,7 +218,7 @@ function isAuthenticated(req, res, next) {
     console.log('isAuthenticated middleware triggered.');
     console.log('req.sessionID:', req.sessionID);
     console.log('req.session:', req.session);
-    console.log('req.user (from passport):', req.user); // This is the crucial one
+    console.log('req.user (from passport):', req.user);
 
     if (req.isAuthenticated()) {
         console.log('User is authenticated. Proceeding to next middleware.');
