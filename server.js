@@ -87,8 +87,10 @@ app.use(cors({
     origin: function (origin, callback) {
         if (!origin) return callback(null, true);
 
-        const allowedOrigin = app.locals.baseUrl;
+        const allowedOrigin = app.locals.baseUrl; // This should now correctly include https://
 
+        // Allow the exact expected origin (e.g., https://tradexainvest.com)
+        // Also allow localhost for development
         if (origin === allowedOrigin || origin.startsWith(`http://localhost:${process.env.PORT || 2100}`)) {
             callback(null, true);
         } else {
@@ -672,7 +674,7 @@ app.get('/logout', (req, res, next) => {
         }
         req.session.destroy((err) => {
             if (err) {
-                console.error('Session destruction error during logout:', err);
+                console.error('Error destroying admin session:', err);
                 return next(err);
             }
             res.clearCookie('tradexa_session_id');
@@ -983,7 +985,8 @@ app.get('/profile', isAuthenticated, async (req, res) => {
             user: user,
             currentPage: 'profile'
         });
-    } catch (err) {
+    }
+    catch (err) {
         console.error('Error rendering profile page:', err);
         res.status(500).send('Server Error');
     }
@@ -1475,10 +1478,16 @@ const PORT = process.env.PORT || 2100;
 
 async function startServer() {
     try {
-        // In a hosted environment, the hosting platform will provide the public URL.
-        // Render uses RENDER_EXTERNAL_URL, Railway uses RAILWAY_STATIC_URL, etc.
-        // You should set BASE_URL in your hosting environment variables if your platform doesn't provide a standard one.
-        const publicUrl = process.env.BASE_URL || process.env.RENDER_EXTERNAL_URL || process.env.RAILWAY_STATIC_URL || `http://localhost:${PORT}`;
+        let publicUrl = process.env.BASE_URL || process.env.RENDER_EXTERNAL_URL || process.env.RAILWAY_STATIC_URL || `http://localhost:${PORT}`;
+
+        // Ensure publicUrl starts with https:// for production or if it's a known domain without protocol
+        // This is crucial for matching the 'https://tradexainvest.com' origin.
+        if (process.env.NODE_ENV === 'production' && !publicUrl.startsWith('http://') && !publicUrl.startsWith('https://')) {
+            publicUrl = `https://${publicUrl}`;
+        } else if (publicUrl.includes('tradexainvest.com') && !publicUrl.startsWith('https://')) {
+            // Specific fix for tradexainvest.com if it comes without https
+            publicUrl = `https://${publicUrl.replace('http://', '')}`;
+        }
 
         app.locals.baseUrl = publicUrl;
         console.log(`App Base URL set to: ${app.locals.baseUrl}`);
