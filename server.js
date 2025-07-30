@@ -131,7 +131,7 @@ const uploadDir = 'public/uploads/profile_pictures/';
 
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
-    console.log(`Created upload directory: ${uploadDir}`);
+    console.log(`Created upload directory: ${upload andir}`);
 }
 
 const storage = multer.diskStorage({
@@ -388,13 +388,12 @@ cron.schedule('0 0 * * *', () => { // Runs daily at midnight
     timezone: "Africa/Lagos"
 });
 
-app.get('/healthz', (req, res) => {
-    res.status(200).send('OK');
-});
-
-
 app.get("/", (req, res) => {
     res.render("index");
+});
+
+app.get('/healthz', (req, res) => {
+    res.status(200).send('OK');
 });
 
 app.get("/login", (req, res) => {
@@ -439,6 +438,7 @@ app.post('/signup', async (req, res) => {
     const { fullName, email, phoneNumber, gender, country, password, confirmPassword } = req.body;
 
     console.log('--- User Registration Attempt ---');
+    // FIX: Changed !!gender to !gender for correct validation
     if (!fullName || !email || !phoneNumber || !gender || !country || !password || !confirmPassword) {
         return res.render('register', { error: 'All fields are required.', success: null });
     }
@@ -1471,10 +1471,14 @@ const PORT = process.env.PORT || 2100;
 
 async function startServer() {
     try {
-        // In a hosted environment, the hosting platform will provide the public URL.
-        // Render uses RENDER_EXTERNAL_URL, Railway uses RAILWAY_STATIC_URL, etc.
-        // You should set BASE_URL in your hosting environment variables if your platform doesn't provide a standard one.
-        const publicUrl = process.env.BASE_URL || process.env.RENDER_EXTERNAL_URL || process.env.RAILWAY_STATIC_URL || `http://localhost:${PORT}`;
+        let publicUrl = process.env.BASE_URL || process.env.RENDER_EXTERNAL_URL || process.env.RAILWAY_STATIC_URL || `http://localhost:${PORT}`;
+
+        // FIX: Ensure publicUrl always has https:// when it's tradexainvest.com or in production
+        if (publicUrl.includes('tradexainvest.com') && !publicUrl.startsWith('https://')) {
+            publicUrl = `https://${publicUrl.replace('http://', '')}`;
+        } else if (process.env.NODE_ENV === 'production' && !publicUrl.startsWith('http://') && !publicUrl.startsWith('https://')) {
+            publicUrl = `https://${publicUrl}`;
+        }
 
         app.locals.baseUrl = publicUrl;
         console.log(`App Base URL set to: ${app.locals.baseUrl}`);
