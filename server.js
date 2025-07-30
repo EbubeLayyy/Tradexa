@@ -388,6 +388,11 @@ cron.schedule('0 0 * * *', () => { // Runs daily at midnight
     timezone: "Africa/Lagos"
 });
 
+// Health check endpoint for hosting platforms
+app.get('/healthz', (req, res) => {
+    res.status(200).send('OK');
+});
+
 app.get("/", (req, res) => {
     res.render("index");
 });
@@ -689,18 +694,18 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
                 const planStartDate = new Date(user.planStartDate);
                 const planEndDate = new Date(user.planEndDate);
 
-                if (user.currentPlan === 'Starter' || user.currentPlan === 'Elite') {
-                    const withdrawalAvailableDate = new Date(planStartDate.getTime() + planDetails.withdrawalAfterDays * 24 * 60 * 60 * 1000);
-                    if (now >= withdrawalAvailableDate) {
-                        withdrawableBalance = user.balance;
-                    }
-                } else if (user.currentPlan === 'Growth') {
-                    if (now >= planEndDate) {
-                        withdrawableBalance = user.balance;
+                    if (user.currentPlan === 'Starter' || user.currentPlan === 'Elite') {
+                        const withdrawalAvailableDate = new Date(planStartDate.getTime() + planDetails.withdrawalAfterDays * 24 * 60 * 60 * 1000);
+                        if (now >= withdrawalAvailableDate) {
+                            withdrawableBalance = user.balance;
+                        }
+                    } else if (user.currentPlan === 'Growth') {
+                        if (now >= planEndDate) {
+                            withdrawableBalance = user.balance;
+                        }
                     }
                 }
             }
-        }
 
         const chartData = user.investments.map(inv => ({
             date: inv.date.toISOString().split('T')[0],
@@ -1012,14 +1017,6 @@ app.post('/profile/upload', isAuthenticated, (req, res, next) => {
                 console.warn('No file uploaded by Multer after successful processing (req.file is undefined).');
                 return res.status(400).json({ success: false, message: 'No image file uploaded or file type not supported.' });
             }
-
-            console.log('File received by Multer:', {
-                originalname: req.file.originalname,
-                mimetype: req.file.mimetype,
-                size: req.file.size,
-                filename: req.file.filename,
-                path: req.file.path
-            });
 
             const user = req.user;
             if (!user) {
@@ -1342,7 +1339,7 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
                         user.dailyROI = investmentPlans.Starter.dailyROI;
                         user.planStartDate = new Date();
                         user.planEndDate = new Date(user.planStartDate);
-                        user.planEndDate.setDate(user.planEndDate.getDate() + investmentPlans.Starter.durationDays);
+                        user.planEndDate.setDate(user.planEndDate.getDate() + investmentPlans[transaction.planName].durationDays);
                         user.investments.push({ date: new Date(), value: user.balance });
                         user.pendingStarterDeposit = 0;
                         const yesterday = new Date();
