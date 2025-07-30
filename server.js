@@ -428,7 +428,14 @@ app.post('/login', (req, res, next) => {
                 console.log('User session set to default 24 hours');
             }
             console.log('User logged in successfully:', user.email);
-            return res.redirect('/dashboard');
+            // IMPORTANT FIX: Explicitly save session before redirect
+            req.session.save((saveErr) => {
+                if (saveErr) {
+                    console.error('Error saving session after login:', saveErr);
+                    return next(saveErr); // Pass error to Express error handler
+                }
+                return res.redirect('/dashboard');
+            });
         });
     })(req, res, next);
 });
