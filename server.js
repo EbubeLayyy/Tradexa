@@ -388,11 +388,6 @@ cron.schedule('0 0 * * *', () => { // Runs daily at midnight
     timezone: "Africa/Lagos"
 });
 
-// Health check endpoint for hosting platforms
-app.get('/healthz', (req, res) => {
-    res.status(200).send('OK');
-});
-
 app.get("/", (req, res) => {
     res.render("index");
 });
@@ -439,7 +434,7 @@ app.post('/signup', async (req, res) => {
     const { fullName, email, phoneNumber, gender, country, password, confirmPassword } = req.body;
 
     console.log('--- User Registration Attempt ---');
-    if (!fullName || !email || !phoneNumber || !gender || !country || !password || !confirmPassword) {
+    if (!fullName || !email || !phoneNumber || !!gender || !country || !password || !confirmPassword) {
         return res.render('register', { error: 'All fields are required.', success: null });
     }
 
@@ -672,7 +667,7 @@ app.get('/logout', (req, res, next) => {
         }
         req.session.destroy((err) => {
             if (err) {
-                console.error('Error destroying admin session:', err);
+                console.error('Session destruction error during logout:', err);
                 return next(err);
             }
             res.clearCookie('tradexa_session_id');
@@ -942,7 +937,7 @@ app.get('/payment-instructions', isAuthenticated, (req, res) => {
 
 app.get('/transactions', isAuthenticated, async (req, res) => {
     try {
-        // Only fetch Deposit and Top-Up transactions for the user
+        // Fetch only Deposit and Top-Up transactions for the user
         const userTransactions = await Transaction.find({ userId: req.user._id, type: { $in: ['Deposit', 'Top-Up'] } }).sort({ createdAt: -1 });
 
         res.render('transactions', {
@@ -1411,8 +1406,10 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
                     await user.save();
                     console.log(`Rejected Starter deposit. User ${user.email} pendingStarterDeposit reduced by $${transaction.amount}.`);
                 }
+            } else if (transaction.type === 'Withdrawal') {
+                // No balance refund for rejected withdrawals as they were never deducted
+                console.log(`Rejected withdrawal. No balance adjustment as it was never deducted.`);
             }
-            // No balance refund for rejected withdrawals as they were never deducted
             console.log(`Transaction ${transaction._id} rejected.`);
             return res.redirect('/admin/dashboard?success=Transaction rejected.');
         }
@@ -1471,16 +1468,10 @@ const PORT = process.env.PORT || 2100;
 
 async function startServer() {
     try {
-        let publicUrl = process.env.BASE_URL || process.env.RENDER_EXTERNAL_URL || process.env.RAILWAY_STATIC_URL || `http://localhost:${PORT}`;
-
-        // Ensure publicUrl starts with https:// for production or if it's a known domain without protocol
-        // This is crucial for matching the 'https://tradexainvest.com' origin.
-        if (process.env.NODE_ENV === 'production' && !publicUrl.startsWith('http://') && !publicUrl.startsWith('https://')) {
-            publicUrl = `https://${publicUrl}`;
-        } else if (publicUrl.includes('tradexainvest.com') && !publicUrl.startsWith('https://')) {
-            // Specific fix for tradexainvest.com if it comes without https
-            publicUrl = `https://${publicUrl.replace('http://', '')}`;
-        }
+        // In a hosted environment, the hosting platform will provide the public URL.
+        // Render uses RENDER_EXTERNAL_URL, Railway uses RAILWAY_STATIC_URL, etc.
+        // You should set BASE_URL in your hosting environment variables if your platform doesn't provide a standard one.
+        const publicUrl = process.env.BASE_URL || process.env.RENDER_EXTERNAL_URL || process.env.RAILWAY_STATIC_URL || `http://localhost:${PORT}`;
 
         app.locals.baseUrl = publicUrl;
         console.log(`App Base URL set to: ${app.locals.baseUrl}`);
