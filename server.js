@@ -9,14 +9,12 @@ const session = require('express-session');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const User = require('./models/User');
-const Transaction = require('./models/Transaction');
+const Transaction = require('./models/Transaction'); // Still needed for deposits/top-ups
 const multer = require('multer');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const fs = require('fs');
 const cors = require('cors');
-
-const MongoStore = require('connect-mongo');
 
 const http = require('http');
 const server = http.createServer(app);
@@ -24,12 +22,6 @@ const { Server } = require('socket.io');
 const io = new Server(server);
 const cron = require('node-cron');
 
-console.log('Railway PORT env var (process.env.PORT):', process.env.PORT);
-console.log('Railway MONGODB_URI env var (process.env.MONGODB_URI is present):', !!process.env.MONGODB_URI);
-
-app.set('trust proxy', 1);
-
-// MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI, {
 })
 .then(() => console.log('MongoDB Connected...'))
@@ -38,7 +30,6 @@ mongoose.connect(process.env.MONGODB_URI, {
     process.exit(1);
 });
 
-// Passport.js Local Strategy for User Authentication
 passport.use(new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
     try {
         console.log('--- Passport LocalStrategy: Login Attempt ---');
@@ -72,33 +63,15 @@ passport.use(new LocalStrategy({ usernameField: 'email' }, async (email, passwor
     }
 }));
 
-// Passport.js Serialize/Deserialize User for Session Management
 passport.serializeUser((user, done) => {
-    console.log('serializeUser: User ID being serialized:', user.id);
     done(null, user.id);
 });
 
 passport.deserializeUser(async (id, done) => {
     try {
-        console.log('deserializeUser: Attempting to find user with ID:', id);
-        console.log('deserializeUser: Type of ID:', typeof id);
-
         const user = await User.findById(id);
-
-        if (user) {
-            console.log('deserializeUser: Successfully found user:', user.email);
-        } else {
-            console.warn('deserializeUser: User NOT found for ID:', id);
-            console.warn('deserializeUser: Is User model available?', !!User);
-            const anyUser = await User.findOne({});
-            console.warn('deserializeUser: Found any user?', !!anyUser);
-            if (anyUser) {
-                console.warn('deserializeUser: Example user found:', anyUser.email);
-            }
-        }
         done(null, user);
     } catch (err) {
-        console.error('deserializeUser: Error finding user:', err);
         done(err);
     }
 });
@@ -112,29 +85,14 @@ app.use(express.json());
 
 app.use(cors({
     origin: function (origin, callback) {
-        const allowedOrigins = [
-            'http://localhost:2100',
-            'http://localhost:8080',
-            'https://tradexa-production.up.railway.app',
-            'https://tradexainvest.com' // NEW: Add your custom domain here
-        ];
-
-        if (process.env.RAILWAY_STATIC_URL) {
-            allowedOrigins.push(process.env.RAILWAY_STATIC_URL);
-        }
-        if (process.env.RENDER_EXTERNAL_URL) {
-            allowedOrigins.push(process.env.RENDER_EXTERNAL_URL);
-        }
-        if (process.env.BASE_URL) {
-            allowedOrigins.push(process.env.BASE_URL);
-        }
-
         if (!origin) return callback(null, true);
 
-        if (allowedOrigins.includes(origin)) {
+        const allowedOrigin = app.locals.baseUrl;
+
+        if (origin === allowedOrigin || origin.startsWith(`http://localhost:${process.env.PORT || 2100}`)) {
             callback(null, true);
         } else {
-            console.warn(`CORS: Blocking request from unauthorized origin: ${origin}. Expected one of: ${allowedOrigins.join(', ')}`);
+            console.warn(`CORS: Blocking request from unauthorized origin: ${origin}. Expected: ${allowedOrigin}`);
             callback(new Error('Not allowed by CORS'), false);
         }
     },
@@ -148,11 +106,6 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     name: 'tradexa_session_id',
-    store: MongoStore.create({
-        mongoUrl: process.env.MONGODB_URI,
-        collectionName: 'sessions',
-        ttl: 1000 * 60 * 60 * 24
-    }),
     cookie: {
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
@@ -164,13 +117,13 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 app.use((req, res, next) => {
-    res.locals.app = {
-        locals: {
-            baseUrl: `${req.protocol}://${req.get('host')}`
-        }
-    };
     res.locals.user = req.user || null;
     res.locals.query = req.query;
+    res.locals.app = {
+        locals: {
+            baseUrl: app.locals.baseUrl
+        }
+    };
     next();
 });
 
@@ -215,20 +168,13 @@ const upload = multer({
 });
 
 function isAuthenticated(req, res, next) {
-    console.log('isAuthenticated middleware triggered.');
-    console.log('req.sessionID:', req.sessionID);
-    console.log('req.session:', req.session);
-    console.log('req.user (from passport):', req.user);
-
     if (req.isAuthenticated()) {
-        console.log('User is authenticated. Proceeding to next middleware.');
         return next();
     }
-    console.log('User is NOT authenticated. Redirecting to login.');
     if (req.xhr || req.headers.accept.indexOf('json') > -1) {
         return res.status(401).json({ success: false, message: 'Unauthorized. Please log in to access this resource.' });
     }
-    res.redirect(`${req.protocol}://${req.get('host')}/login?error=Please log in to access this page.`);
+    res.redirect('/login?error=Please log in to access this page.');
 }
 
 function isAdmin(req, res, next) {
@@ -400,19 +346,21 @@ async function calculateDailyProfits() {
             const planDurationDays = planDetails.durationDays;
             if (daysSincePlanStart >= planDurationDays) {
                 console.log(`Plan for user ${user.email} (${user.currentPlan}) has ended. Resetting plan.`);
+                // Apply final profit for the last day of the plan
                 const dailyProfit = user.initialInvestment * user.dailyROI;
                 user.balance += dailyProfit;
                 user.investments.push({ date: new Date(), value: user.balance });
 
+                // Reset plan-specific fields, but keep the balance untouched.
                 user.currentPlan = 'None';
                 user.dailyROI = 0;
-                user.initialInvestment = 0;
+                user.initialInvestment = 0; // Reset initial investment for the *next* plan
                 user.planStartDate = null;
                 user.planEndDate = null;
-                user.pendingStarterDeposit = 0;
-                user.lastProfitUpdate = new Date();
+                user.pendingStarterDeposit = 0; // Clear any pending starter deposits
+                user.lastProfitUpdate = new Date(); // Mark profit as updated for today
                 await user.save();
-                console.log(`User ${user.email}'s plan reset after completion. Final balance: $${user.balance.toFixed(2)}`);
+                console.log(`User ${user.email}'s plan reset after completion. Final balance (preserved): $${user.balance.toFixed(2)}`);
                 await emitBalanceUpdate(user._id);
                 continue;
             }
@@ -432,16 +380,12 @@ async function calculateDailyProfits() {
     }
 }
 
-cron.schedule('0 0 * * *', () => {
+cron.schedule('0 0 * * *', () => { // Runs daily at midnight
     console.log('Cron job: Initiating daily profit calculation...');
     calculateDailyProfits();
 }, {
     scheduled: true,
     timezone: "Africa/Lagos"
-});
-
-app.get('/healthz', (req, res) => {
-    res.status(200).send('OK');
 });
 
 app.get("/", (req, res) => {
@@ -462,7 +406,7 @@ app.post('/login', (req, res, next) => {
         }
         if (!user) {
             req.session.messages = [info.message];
-            return res.redirect(`${req.protocol}://${req.get('host')}/login`);
+            return res.redirect('/login');
         }
         req.logIn(user, (err) => {
             if (err) {
@@ -477,7 +421,7 @@ app.post('/login', (req, res, next) => {
                 console.log('User session set to default 24 hours');
             }
             console.log('User logged in successfully:', user.email);
-            return res.redirect(`${req.protocol}://${req.get('host')}/dashboard`);
+            return res.redirect('/dashboard');
         });
     })(req, res, next);
 });
@@ -493,6 +437,7 @@ app.post('/signup', async (req, res) => {
     if (!fullName || !email || !phoneNumber || !gender || !country || !password || !confirmPassword) {
         return res.render('register', { error: 'All fields are required.', success: null });
     }
+
     if (password !== confirmPassword) {
         return res.render('register', { error: 'Passwords do not match.', success: null });
     }
@@ -555,7 +500,7 @@ app.post('/signup', async (req, res) => {
         await transporter.sendMail(mailOptions);
         console.log('Verification email sent to:', newUser.email);
 
-        return res.redirect(`${req.protocol}://${req.get('host')}/login?success=Registration successful! Please check your email to verify your account before logging in.`);
+        return res.redirect('/login?success=Registration successful! Please check your email to verify your account before logging in.');
 
     } catch (error) {
         console.error('Error during user registration:', error);
@@ -581,7 +526,7 @@ app.get('/verify-email/:token', async (req, res) => {
         });
 
         if (!user) {
-            return res.redirect(`${req.protocol}://${req.get('host')}/login?error=Email verification link is invalid or has expired. Please try registering again.`);
+            return res.redirect('/login?error=Email verification link is invalid or has expired. Please try registering again.');
         }
 
         user.isVerified = true;
@@ -590,11 +535,11 @@ app.get('/verify-email/:token', async (req, res) => {
         await user.save();
 
         console.log('User email verified successfully:', user.email);
-        return res.redirect(`${req.protocol}://${req.get('host')}/login?success=Your email has been successfully verified! You can now log in.`);
+        return res.redirect('/login?success=Your email has been successfully verified! You can now log in.');
 
     } catch (error) {
         console.error('Error during email verification:', error);
-        return res.redirect(`${req.protocol}://${req.get('host')}/login?error=An error occurred during email verification. Please try again.`);
+        return res.redirect('/login?error=An error occurred during email verification. Please try again.');
     }
 });
 
@@ -616,7 +561,7 @@ app.post('/forgot-password', async (req, res) => {
 
         if (!user) {
             console.log('Forgot password request for unregistered email:', email);
-            return res.redirect(`${req.protocol}://${req.get('host')}/forgot-password?success=If that email address is registered, you will receive a password reset link.`);
+            return res.redirect('/forgot-password?success=If that email address is registered, you will receive a password reset link.');
         }
 
         const resetToken = crypto.randomBytes(32).toString('hex');
@@ -627,7 +572,6 @@ app.post('/forgot-password', async (req, res) => {
         await user.save();
 
         const resetUrl = `${res.locals.app.locals.baseUrl}/reset-password/${resetToken}`;
-        console.log(`--- PASSWORD RESET EMAIL URL BEING SENT: ${resetUrl} ---`);
 
         const mailOptions = {
             from: `"Tradexa" <${supportEmail}>`,
@@ -647,7 +591,7 @@ app.post('/forgot-password', async (req, res) => {
         await transporter.sendMail(mailOptions);
         console.log('Password reset email sent to:', user.email);
 
-        return res.redirect(`${req.protocol}://${req.get('host')}/forgot-password?success=If that email address is registered, you will receive a password reset link.`);
+        return res.redirect('/forgot-password?success=If that email address is registered, you will receive a password reset link.');
 
     } catch (error) {
         console.error('Error during forgot password request:', error);
@@ -665,13 +609,13 @@ app.get('/reset-password/:token', async (req, res) => {
         });
 
         if (!user) {
-            return res.redirect(`${req.protocol}://${req.get('host')}/login?error=Password reset link is invalid or has expired. Please request a new one.`);
+            return res.redirect('/login?error=Password reset link is invalid or has expired. Please request a new one.');
         }
 
         res.render('reset-password', { token, error: null, success: null });
     } catch (error) {
         console.error('Error rendering reset password page:', error);
-        return res.redirect(`${req.protocol}://${req.get('host')}/login?error=An error occurred while trying to reset your password. Please try again.`);
+        return res.redirect('/login?error=An error occurred while trying to reset your password. Please try again.');
     }
 });
 
@@ -692,9 +636,11 @@ app.post('/reset-password/:token', async (req, res) => {
         if (!password || !confirmPassword) {
             return res.render('reset-password', { token, error: 'Please enter and confirm your new password.', success: null });
         }
+
         if (password !== confirmPassword) {
             return res.render('reset-password', { token, error: 'Passwords do not match.', success: null });
         }
+
         if (password.length < 8) {
             return res.render('reset-password', { token, error: 'Password must be at least 8 characters long.', success: null });
         }
@@ -705,7 +651,7 @@ app.post('/reset-password/:token', async (req, res) => {
         await user.save();
 
         console.log('Password successfully reset for user:', user.email);
-        return res.redirect(`${req.protocol}://${req.get('host')}/login?success=Your password has been successfully reset. You can now log in with your new password.`);
+        return res.redirect('/login?success=Your password has been successfully reset. You can now log in with your new password.');
 
     } catch (error) {
         console.error('Error during password reset:', error);
@@ -725,26 +671,18 @@ app.get('/logout', (req, res, next) => {
                 return next(err);
             }
             res.clearCookie('tradexa_session_id');
-            res.redirect(`${req.protocol}://${req.get('host')}/login?success=You have been logged out.`);
+            res.redirect('/login?success=You have been logged out.');
         });
     });
 });
 
 app.get('/dashboard', isAuthenticated, async (req, res) => {
-    console.log('--- Accessing /dashboard route ---');
     try {
         const user = req.user;
-        console.log('Dashboard: User authenticated:', user ? user.email : 'No user found');
-
-        if (!user) {
-            console.error('Dashboard: No user object found after isAuthenticated. Redirecting to login.');
-            return res.redirect(`${req.protocol}://${req.get('host')}/login?error=Session expired. Please log in again.`);
-        }
 
         let withdrawableBalance = 0;
         if (user.currentPlan !== 'None' && user.planStartDate && user.planEndDate) {
             const planDetails = investmentPlans[user.currentPlan];
-            console.log('Dashboard: User has an active plan. Plan details:', planDetails ? user.currentPlan : 'Unknown');
 
             if (planDetails) {
                 const now = new Date();
@@ -755,31 +693,20 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
                     const withdrawalAvailableDate = new Date(planStartDate.getTime() + planDetails.withdrawalAfterDays * 24 * 60 * 60 * 1000);
                     if (now >= withdrawalAvailableDate) {
                         withdrawableBalance = user.balance;
-                        console.log('Dashboard: Withdrawal available. Balance:', withdrawableBalance.toFixed(2));
-                    } else {
-                        console.log('Dashboard: Withdrawal not yet available.');
                     }
                 } else if (user.currentPlan === 'Growth') {
                     if (now >= planEndDate) {
                         withdrawableBalance = user.balance;
-                        console.log('Dashboard: Growth plan matured. Withdrawal available. Balance:', withdrawableBalance.toFixed(2));
-                    } else {
-                        console.log('Dashboard: Growth plan not yet matured.');
                     }
                 }
             }
-        } else {
-            console.log('Dashboard: User has no active plan or plan details missing.');
         }
 
-        const chartData = Array.isArray(user.investments) ? user.investments.map(inv => ({
+        const chartData = user.investments.map(inv => ({
             date: inv.date.toISOString().split('T')[0],
             value: inv.value
-        })) : [];
-        console.log('Dashboard: Chart data prepared. Items:', chartData.length);
+        }));
 
-
-        console.log('Dashboard: Attempting to render dashboard.ejs');
         res.render('dashboard', {
             title: 'Dashboard - Tradexa',
             user: user,
@@ -787,16 +714,16 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
             investments: chartData,
             currentPage: 'dashboard',
         });
-        console.log('Dashboard: res.render called successfully.');
     } catch (err) {
-        console.error('Dashboard: Error rendering dashboard:', err);
-        res.status(500).send('Server Error during dashboard rendering. Check logs for details.');
+        console.error('Error rendering dashboard:', err);
+        res.status(500).send('Server Error');
     }
 });
 
 app.get('/my-plans', isAuthenticated, async (req, res) => {
     try {
         const user = req.user;
+
         const errorMessage = req.query.error || null;
 
         let currentProjectedValue = user.initialInvestment;
@@ -835,7 +762,7 @@ app.get('/my-plans', isAuthenticated, async (req, res) => {
 
     } catch (error) {
         console.error('Error fetching user plans:', error);
-        return res.redirect(`${req.protocol}://${req.get('host')}/dashboard?error=Could not load your plans. Please try again.`);
+        return res.redirect('/dashboard?error=Could not load your plans. Please try again.');
     }
 });
 
@@ -844,17 +771,19 @@ app.post('/select-plan', isAuthenticated, async (req, res) => {
     const user = req.user;
 
     if (!planName || !investmentPlans[planName]) {
-        return res.redirect(`${req.protocol}://${req.get('host')}/my-plans?error=Invalid plan selected.`);
+        return res.redirect('/my-plans?error=Invalid plan selected.');
     }
 
+    // If user has an active plan and tries to select a different one, prevent it.
+    // If they select the same plan, it's considered for top-up.
     if (user.currentPlan !== 'None' && user.currentPlan !== planName) {
-        return res.redirect(`${req.protocol}://${req.get('host')}/my-plans?error=You already have an active plan. Consider topping up your existing plan.`);
+        return res.redirect('/my-plans?error=You already have an active plan. Consider topping up your existing plan.');
     }
 
     req.session.selectedDepositPlan = planName;
     console.log(`User ${user.email} selected plan: ${planName} for deposit.`);
 
-    res.redirect(`${req.protocol}://${req.get('host')}/deposit?success=Plan selected! Now enter your deposit amount.`);
+    res.redirect('/deposit?success=Plan selected! Now enter your deposit amount.');
 });
 
 app.get('/deposit', isAuthenticated, async (req, res) => {
@@ -868,19 +797,27 @@ app.get('/deposit', isAuthenticated, async (req, res) => {
         let planDetails = null;
         let isTopUp = false;
 
+        // If no plan is selected in session AND user has no active plan, redirect to select plan
+        if (!selectedPlanName && user.currentPlan === 'None') {
+            return res.redirect('/my-plans?error=Please select an investment plan before making a deposit.');
+        }
+
+        // If no plan selected in session, but user has an active plan, assume top-up for current plan
         if (!selectedPlanName && user.currentPlan !== 'None') {
             selectedPlanName = user.currentPlan;
             isTopUp = true;
             planDetails = investmentPlans[selectedPlanName];
             console.log(`User ${user.email} is requesting to top-up their active ${selectedPlanName} plan.`);
         } else if (selectedPlanName && investmentPlans[selectedPlanName]) {
+            // If a plan is selected in session, use it
             planDetails = investmentPlans[selectedPlanName];
             if (user.currentPlan === selectedPlanName) {
-                isTopUp = true;
+                isTopUp = true; // It's a top-up if the selected plan is their current active plan
             }
             console.log(`User ${user.email} is selecting a new plan: ${selectedPlanName}.`);
         } else {
-            return res.redirect(`${req.protocol}://${req.get('host')}/my-plans?error=Please select an investment plan before making a deposit.`);
+            // Fallback, should ideally be caught by the first check
+            return res.redirect('/my-plans?error=Please select an investment plan before making a deposit.');
         }
 
         res.render('deposit', {
@@ -905,55 +842,62 @@ app.post('/deposit', isAuthenticated, async (req, res) => {
     const user = req.user;
 
     if (isNaN(depositAmount) || depositAmount <= 0) {
-        return res.redirect(`${req.protocol}://${req.get('host')}/deposit?error=Please enter a valid deposit amount.`);
+        return res.redirect(`/deposit?error=Please enter a valid deposit amount.`);
     }
 
     let selectedPlanName = req.session.selectedDepositPlan;
     let planToProcess = null;
     let isNewActivation = false;
 
+    // Determine the plan to process and if it's a new activation
     if (selectedPlanName && investmentPlans[selectedPlanName]) {
         planToProcess = investmentPlans[selectedPlanName];
         if (user.currentPlan === 'None' || user.currentPlan === selectedPlanName) {
-            isNewActivation = true;
+            isNewActivation = true; // New activation or top-up of the same plan
         } else {
-            return res.redirect(`${req.protocol}://${req.get('host')}/my-plans?error=You already have an active ${user.currentPlan} plan. Please wait for it to complete or contact support to change plans.`);
+            // User has an active plan different from the one selected in session
+            return res.redirect(`/my-plans?error=You already have an active ${user.currentPlan} plan. Please wait for it to complete or contact support to change plans.`);
         }
     } else if (user.currentPlan !== 'None') {
+        // No plan selected in session, but user has an active plan (implies top-up)
         planToProcess = investmentPlans[user.currentPlan];
         selectedPlanName = user.currentPlan;
-        isNewActivation = false;
+        isNewActivation = false; // It's a top-up, not a new activation
     } else {
-        return res.redirect(`${req.protocol}://${req.get('host')}/my-plans?error=No plan selected or invalid plan. Please choose a plan first.`);
+        // No plan selected in session AND no active plan (user needs to choose)
+        return res.redirect('/my-plans?error=No plan selected or invalid plan. Please choose a plan first.');
     }
 
+    // Validation for deposit amount based on plan rules
     if (!isNewActivation && planToProcess.maxDeposit !== Infinity && (user.initialInvestment + depositAmount > planToProcess.maxDeposit)) {
-        return res.redirect(`${req.protocol}://${req.get('host')}/deposit?error=Your total investment for the ${selectedPlanName} plan cannot exceed $${planToProcess.maxDeposit}. Please adjust your top-up amount.`);
+        return res.redirect(`/deposit?error=Your total investment for the ${selectedPlanName} plan cannot exceed $${planToProcess.maxDeposit}. Please adjust your top-up amount.`);
     }
     if (isNewActivation && selectedPlanName !== 'Starter' && depositAmount < planToProcess.minDeposit) {
-        return res.redirect(`${req.protocol}://${req.get('host')}/deposit?error=Minimum deposit for ${selectedPlanName} Plan is $${planToProcess.minDeposit}.`);
+        return res.redirect(`/deposit?error=Minimum deposit for ${selectedPlanName} Plan is $${planToProcess.minDeposit}.`);
     }
     if (isNewActivation && selectedPlanName === 'Starter') {
         if (depositAmount + user.pendingStarterDeposit > planToProcess.maxDeposit) {
-            return res.redirect(`${req.protocol}://${req.get('host')}/deposit?error=Your total Starter deposits cannot exceed $${planToProcess.maxDeposit}. Please adjust your amount.`);
+            return res.redirect(`/deposit?error=Your total Starter deposits cannot exceed $${planToProcess.maxDeposit}. Please adjust your amount.`);
         }
     }
 
     const supportedCurrencies = Object.keys(cryptoWallets);
     if (!paymentCurrency || !supportedCurrencies.includes(paymentCurrency)) {
-        return res.redirect(`${req.protocol}://${req.get('host')}/deposit?error=Please select a valid payment currency.`);
+        return res.redirect(`/deposit?error=Please select a valid payment currency.`);
     }
 
     try {
         let transactionType;
-        if (isNewActivation) {
+        if (isNewActivation && user.currentPlan === 'None') { // Truly new activation
             transactionType = 'Deposit';
-            if (selectedPlanName === 'Starter') {
-                user.pendingStarterDeposit += depositAmount;
-                await user.save();
-            }
-        } else {
+        } else { // Top-up or new activation of same plan
             transactionType = 'Top-Up';
+        }
+
+        // Handle pending Starter deposits separately
+        if (selectedPlanName === 'Starter' && transactionType === 'Deposit') {
+            user.pendingStarterDeposit += depositAmount;
+            await user.save();
         }
 
         const newTransaction = new Transaction({
@@ -961,14 +905,14 @@ app.post('/deposit', isAuthenticated, async (req, res) => {
             amount: depositAmount,
             currency: paymentCurrency,
             type: transactionType,
-            status: 'Pending',
+            status: 'Pending', // Deposits/Top-ups still start as 'Pending'
             walletAddressUsed: cryptoWallets[paymentCurrency],
             planName: selectedPlanName
         });
         await newTransaction.save();
-        console.log('New pending transaction recorded:', newTransaction);
+        console.log('New deposit/top-up transaction recorded with status "Pending":', newTransaction);
 
-        delete req.session.selectedDepositPlan;
+        delete req.session.selectedDepositPlan; // Clear session after use
 
         const walletAddressToDisplay = cryptoWallets[paymentCurrency];
         let currencyLabel;
@@ -981,7 +925,7 @@ app.post('/deposit', isAuthenticated, async (req, res) => {
             default: currencyLabel = paymentCurrency;
         }
 
-        return res.redirect(`${req.protocol}://${req.get('host')}/payment-instructions?amount=${depositAmount}&currency=${currencyLabel}&address=${walletAddressToDisplay}&plan=${selectedPlanName}`);
+        return res.redirect(`/payment-instructions?amount=${depositAmount}&currency=${currencyLabel}&address=${walletAddressToDisplay}&plan=${selectedPlanName}`);
 
     } catch (error) {
         console.error('Error during deposit/top-up:', error);
@@ -989,14 +933,14 @@ app.post('/deposit', isAuthenticated, async (req, res) => {
         if (selectedPlanName) {
             redirectError += `&selectedPlan=${selectedPlanName}`;
         }
-        return res.redirect(`${req.protocol}://${req.get('host')}/deposit?error=${redirectError}`);
+        return res.redirect(`/deposit?error=${redirectError}`);
     }
 });
 
 app.get('/payment-instructions', isAuthenticated, (req, res) => {
     const { amount, currency, address, plan } = req.query;
     if (!amount || !currency || !address || !plan) {
-        return res.redirect(`${req.protocol}://${req.get('host')}/dashboard?error=Missing payment details.`);
+        return res.redirect('/dashboard?error=Missing payment details.');
     }
     res.render('paymentinstructions', {
         amount,
@@ -1010,7 +954,8 @@ app.get('/payment-instructions', isAuthenticated, (req, res) => {
 
 app.get('/transactions', isAuthenticated, async (req, res) => {
     try {
-        const userTransactions = await Transaction.find({ userId: req.user._id }).sort({ createdAt: -1 });
+        // Fetch only Deposit and Top-Up transactions for the user
+        const userTransactions = await Transaction.find({ userId: req.user._id, type: { $in: ['Deposit', 'Top-Up'] } }).sort({ createdAt: -1 });
 
         res.render('transactions', {
             transactions: userTransactions,
@@ -1019,10 +964,9 @@ app.get('/transactions', isAuthenticated, async (req, res) => {
             title: 'Transaction History',
             currentPage: 'transactions'
         });
-    }
-    catch (error) {
+    } catch (error) {
         console.error('Error fetching user transactions:', error);
-        res.redirect(`${req.protocol}://${req.get('host')}/dashboard?error=Could not load transaction history. Please try again.`);
+        res.redirect('/dashboard?error=Could not load transaction history. Please try again.');
     }
 });
 
@@ -1204,7 +1148,7 @@ app.get('/withdraw', isAuthenticated, async (req, res) => {
         });
     } catch (error) {
         console.error('Error rendering withdraw page:', error);
-        res.redirect(`${req.protocol}://${req.get('host')}/dashboard?error=Could not load withdraw page. Please try again.`);
+        res.redirect('/dashboard?error=Could not load withdraw page. Please try again.');
     }
 });
 
@@ -1212,6 +1156,9 @@ app.post('/withdraw', isAuthenticated, async (req, res) => {
     const { amount, currency, walletAddress } = req.body;
     const withdrawalAmount = parseFloat(amount);
     const user = req.user;
+
+    // --- IMPORTANT: All withdrawal requests are now purely frontend-driven.
+    // --- The backend will only validate and respond, but NOT record or modify balance.
 
     if (isNaN(withdrawalAmount) || withdrawalAmount <= 0) {
         return res.status(400).json({ success: false, message: 'Please enter a valid withdrawal amount.' });
@@ -1257,42 +1204,19 @@ app.post('/withdraw', isAuthenticated, async (req, res) => {
     }
 
     try {
-        user.balance -= withdrawalAmount;
-        await user.save();
+        // IMPORTANT CHANGES:
+        // 1. Balance is NOT modified.
+        // 2. No Transaction record is created for withdrawals.
+        // 3. No email is sent from the backend for withdrawal requests.
 
-        const newTransaction = new Transaction({
-            userId: user._id,
-            type: 'Withdrawal',
-            amount: withdrawalAmount,
-            currency: currency,
-            walletAddress: walletAddress,
-            status: 'Pending',
-            date: new Date()
-        });
-        await newTransaction.save();
-
-        const mailOptions = {
-            from: `"Tradexa" <${supportEmail}>`,
-            to: user.email,
-            subject: 'Tradexa: Withdrawal Request Received',
-            html: `
-                <p>Dear ${user.fullName},</p>
-                <p>We have received your withdrawal request for <strong>$${withdrawalAmount.toFixed(2)} ${currency}</strong> to wallet address <strong>${walletAddress}</strong>.</p>
-                <p>Your request is currently being processed and will be reviewed by our team shortly.</p>
-                <p>You will receive another email once your withdrawal has been approved and processed.</p>
-                <p>Your current balance is now: <strong>$${user.balance.toFixed(2)}</strong></p>
-                <p>Thank you for choosing Tradexa!</p>
-            `
-        };
-        await transporter.sendMail(mailOptions);
-
-        await emitBalanceUpdate(user._id);
-
-        res.status(200).json({ success: true, message: 'Withdrawal request submitted successfully! It will be processed shortly.', supportEmail: supportEmail });
+        console.log(`User ${user.email} attempted withdrawal of $${withdrawalAmount} ${currency} to ${walletAddress}. Request passed validation.`);
+        // The frontend will display the success message from here.
+        res.status(200).json({ success: true, message: 'Withdrawal request submitted successfully!' });
 
     } catch (err) {
-        console.error('Withdrawal error:', err);
-        res.status(500).json({ success: false, message: 'Failed to process withdrawal. Please try again.', supportEmail: supportEmail });
+        console.error('Withdrawal error (server-side unexpected error):', err);
+        // This error message will be displayed to the user if a server-side error occurs
+        res.status(500).json({ success: false, message: 'Failed to process withdrawal. Please try again.' });
     }
 });
 
@@ -1307,7 +1231,7 @@ app.post('/admin/login', (req, res, next) => {
 
     if (!email || !password) {
         req.session.messages = ['Please enter both email and password.'];
-        return res.redirect(`${req.protocol}://${req.get('host')}/admin/login`);
+        return res.redirect('/admin/login');
     }
 
     const adminEmail = process.env.ADMIN_EMAIL;
@@ -1315,31 +1239,32 @@ app.post('/admin/login', (req, res, next) => {
 
     if (email !== adminEmail) {
         req.session.messages = ['Invalid admin credentials.'];
-        return res.redirect(`${req.protocol}://${req.get('host')}/admin/login`);
+        return res.redirect('/admin/login');
     }
 
     bcrypt.compare(password, adminPasswordHash)
         .then(isMatch => {
             if (!isMatch) {
                 req.session.messages = ['Invalid admin credentials.'];
-                return res.redirect(`${req.protocol}://${req.get('host')}/admin/login`);
+                return res.redirect('/admin/login');
             }
 
             req.session.isAdmin = true;
             req.session.isLoggedIn = true;
             console.log('Admin logged in successfully:', email);
-            return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard`);
+            return res.redirect('/admin/dashboard');
         })
         .catch(err => {
             console.error('Error during admin login bcrypt compare:', err);
             req.session.messages = ['An error occurred during login.'];
-            return res.redirect(`${req.protocol}://${req.get('host')}/admin/login`);
+            return res.redirect('/admin/login');
         });
 });
 
 app.get('/admin/dashboard', isAdmin, async (req, res) => {
     try {
-        const pendingTransactions = await Transaction.find({ status: 'Pending' }).populate('userId', 'fullName email').sort({ createdAt: -1 });
+        // Admin dashboard will now ONLY fetch Deposit and Top-Up transactions with status 'Pending'.
+        const pendingTransactions = await Transaction.find({ type: { $in: ['Deposit', 'Top-Up'] }, status: 'Pending' }).populate('userId', 'fullName email').sort({ createdAt: -1 });
 
         res.render('admin_dashboard', {
             title: 'Admin Dashboard',
@@ -1364,18 +1289,24 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
     const { transactionId, action } = req.body;
 
     if (!transactionId || !action || !['confirm', 'reject'].includes(action)) {
-        return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard?error=Invalid transaction ID or action.`);
+        return res.redirect('/admin/dashboard?error=Invalid transaction ID or action.');
     }
 
     try {
         const transaction = await Transaction.findById(transactionId);
 
         if (!transaction) {
-            return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard?error=Transaction not found.`);
+            return res.redirect('/admin/dashboard?error=Transaction not found.');
+        }
+
+        // IMPORTANT: Ensure this logic ONLY applies to Deposit/Top-Up transactions.
+        if (transaction.type === 'Withdrawal') {
+            console.warn(`Admin attempted to process a withdrawal transaction (${transactionId}). Withdrawals are no longer tracked in the database or affect user balance.`);
+            return res.redirect('/admin/dashboard?error=Withdrawal transactions are not processed through this panel.');
         }
 
         if (transaction.status !== 'Pending') {
-            return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard?error=Transaction is already ${transaction.status}.`);
+            return res.redirect(`/admin/dashboard?error=Transaction is already ${transaction.status}.`);
         }
 
         if (action === 'confirm') {
@@ -1384,73 +1315,71 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
 
             const user = await User.findById(transaction.userId);
             if (user) {
-                if (transaction.type === 'Deposit' || transaction.type === 'Top-Up') {
-                    user.balance += transaction.amount;
+                // This logic is ONLY for Deposit and Top-Up transactions
+                user.balance += transaction.amount;
 
-                    if (transaction.type === 'Deposit' && transaction.planName === 'Starter') {
-                        const starterMinActivation = investmentPlans.Starter.minDeposit;
-                        user.pendingStarterDeposit = user.pendingStarterDeposit || 0;
+                if (transaction.type === 'Deposit' && transaction.planName === 'Starter') {
+                    const starterMinActivation = investmentPlans.Starter.minDeposit;
+                    user.pendingStarterDeposit = user.pendingStarterDeposit || 0;
 
-                        if (user.pendingStarterDeposit >= starterMinActivation && user.currentPlan === 'None') {
-                            user.currentPlan = 'Starter';
-                            user.initialInvestment = user.pendingStarterDeposit;
-                            user.dailyROI = investmentPlans.Starter.dailyROI;
-                            user.planStartDate = new Date();
-                            user.planEndDate = new Date(user.planStartDate);
-                            user.planEndDate.setDate(user.planEndDate.getDate() + investmentPlans.Starter.durationDays);
-                            user.investments.push({ date: new Date(), value: user.balance });
-                            user.pendingStarterDeposit = 0;
-                            const yesterday = new Date();
-                            yesterday.setDate(yesterday.getDate() - 1);
-                            yesterday.setHours(0, 0, 0, 0);
-                            user.lastProfitUpdate = yesterday;
-
-                            console.log(`User ${user.email} activated Starter plan with $${user.initialInvestment} (accumulated and confirmed).`);
-                        } else if (user.currentPlan === 'Starter' && user.pendingStarterDeposit < starterMinActivation) {
-                            console.log(`Confirmed $${transaction.amount} for Starter accumulation. User ${user.email} total pending: $${user.pendingStarterDeposit}.`);
-                        } else if (user.currentPlan === 'Starter' && user.pendingStarterDeposit >= starterMinActivation && user.initialInvestment === 0) {
-                            user.currentPlan = 'Starter';
-                            user.initialInvestment = user.pendingStarterDeposit;
-                            user.dailyROI = investmentPlans.Starter.dailyROI;
-                            user.planStartDate = new Date();
-                            user.planEndDate = new Date(user.planStartDate);
-                            user.planEndDate.setDate(user.planEndDate.getDate() + investmentPlans[transaction.planName].durationDays);
-                            user.investments.push({ date: new Date(), value: user.balance });
-                            user.pendingStarterDeposit = 0;
-                            const yesterday = new Date();
-                            yesterday.setDate(yesterday.getDate() - 1);
-                            yesterday.setHours(0, 0, 0, 0);
-                            user.lastProfitUpdate = yesterday;
-                            console.log(`User ${user.email} activated Starter plan with $${user.initialInvestment} (multiple deposits confirmed).`);
-                        }
-
-
-                    } else if (transaction.type === 'Deposit') {
-                        user.currentPlan = transaction.planName;
-                        user.initialInvestment = transaction.amount;
-                        user.dailyROI = investmentPlans[transaction.planName].dailyROI;
+                    if (user.pendingStarterDeposit >= starterMinActivation && user.currentPlan === 'None') {
+                        user.currentPlan = 'Starter';
+                        user.initialInvestment = user.pendingStarterDeposit;
+                        user.dailyROI = investmentPlans.Starter.dailyROI;
                         user.planStartDate = new Date();
                         user.planEndDate = new Date(user.planStartDate);
-                        user.planEndDate.setDate(user.planEndDate.getDate() + investmentPlans[transaction.planName].durationDays);
+                        user.planEndDate.setDate(user.planEndDate.getDate() + investmentPlans.Starter.durationDays);
                         user.investments.push({ date: new Date(), value: user.balance });
+                        user.pendingStarterDeposit = 0;
+
                         const yesterday = new Date();
                         yesterday.setDate(yesterday.getDate() - 1);
                         yesterday.setHours(0, 0, 0, 0);
                         user.lastProfitUpdate = yesterday;
 
-                        console.log(`User ${user.email} activated ${transaction.planName} plan with $${user.initialInvestment} (confirmed).`);
-                    } else if (transaction.type === 'Top-Up') {
-                        user.initialInvestment += transaction.amount;
+                        console.log(`User ${user.email} activated Starter plan with $${user.initialInvestment} (accumulated and confirmed).`);
+                    } else if (user.currentPlan === 'Starter' && user.pendingStarterDeposit < starterMinActivation) {
+                        console.log(`Confirmed $${transaction.amount} for Starter accumulation. User ${user.email} total pending: $${user.pendingStarterDeposit}.`);
+                    } else if (user.currentPlan === 'Starter' && user.pendingStarterDeposit >= starterMinActivation && user.initialInvestment === 0) {
+                        user.currentPlan = 'Starter';
+                        user.initialInvestment = user.pendingStarterDeposit;
+                        user.dailyROI = investmentPlans.Starter.dailyROI;
+                        user.planStartDate = new Date();
+                        user.planEndDate = new Date(user.planStartDate);
+                        user.planEndDate.setDate(user.planEndDate.getDate() + investmentPlans.Starter.durationDays);
                         user.investments.push({ date: new Date(), value: user.balance });
-                        console.log(`User ${user.email} topped up their ${transaction.planName} plan with $${transaction.amount}. New confirmed initial investment: $${user.initialInvestment}.`);
+                        user.pendingStarterDeposit = 0;
+                        const yesterday = new Date();
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        yesterday.setHours(0, 0, 0, 0);
+                        user.lastProfitUpdate = yesterday;
+                        console.log(`User ${user.email} activated Starter plan with $${user.initialInvestment} (multiple deposits confirmed).`);
                     }
-                } else if (transaction.type === 'Withdrawal') {
-                    console.log(`Withdrawal transaction ${transaction._id} confirmed for user ${user.email}. Balance already deducted.`);
+
+
+                } else if (transaction.type === 'Deposit') {
+                    user.currentPlan = transaction.planName;
+                    user.initialInvestment = transaction.amount;
+                    user.dailyROI = investmentPlans[transaction.planName].dailyROI;
+                    user.planStartDate = new Date();
+                    user.planEndDate = new Date(user.planStartDate);
+                    user.planEndDate.setDate(user.planEndDate.getDate() + investmentPlans[transaction.planName].durationDays);
+                    user.investments.push({ date: new Date(), value: user.balance });
+
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    yesterday.setHours(0, 0, 0, 0);
+                    user.lastProfitUpdate = yesterday;
+
+                    console.log(`User ${user.email} activated ${transaction.planName} plan with $${user.initialInvestment} (confirmed).`);
+                } else if (transaction.type === 'Top-Up') {
+                    user.initialInvestment += transaction.amount;
+                    user.investments.push({ date: new Date(), value: user.balance });
+                    console.log(`User ${user.email} topped up their ${transaction.planName} plan with $${transaction.amount}. New confirmed initial investment: $${user.initialInvestment}.`);
                 }
+                console.log(`User ${user.email} balance updated to $${user.balance.toFixed(2)} after deposit/top-up confirmation.`);
 
                 await user.save();
-                console.log(`User ${user.email} balance updated to $${user.balance.toFixed(2)} after transaction ${transaction._id} confirmation.`);
-
                 await emitBalanceUpdate(user._id);
 
                 const mailOptions = {
@@ -1464,6 +1393,8 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
                         <p>You can view your updated balance and transaction history by logging into your dashboard:</p>
                         <p><a href="${res.locals.app.locals.baseUrl}/dashboard">Go to Your Dashboard</a></p>
                         <p>Thank you for choosing Tradexa!</p>
+                        <p>Best regards,<br>The Tradexa Team</p>
+                        <p><a href="mailto:${supportEmail}">${supportEmail}</a></p>
                     `
                 };
 
@@ -1477,8 +1408,8 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
             } else {
                 console.warn(`User not found for transaction ${transaction._id}. Balance not updated and email not sent.`);
             }
-            await transaction.save();
-            return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard?success=Transaction confirmed successfully!`);
+            await transaction.save(); // Save transaction status
+            return res.redirect('/admin/dashboard?success=Transaction confirmed successfully!');
 
         } else if (action === 'reject') {
             transaction.status = 'Rejected';
@@ -1492,22 +1423,14 @@ app.post('/admin/transaction-action', isAdmin, async (req, res) => {
                     await user.save();
                     console.log(`Rejected Starter deposit. User ${user.email} pendingStarterDeposit reduced by $${transaction.amount}.`);
                 }
-            } else if (transaction.type === 'Withdrawal') {
-                const user = await User.findById(transaction.userId);
-                if (user) {
-                    user.balance += transaction.amount;
-                    await user.save();
-                    console.log(`Rejected withdrawal. Funds returned to user ${user.email}. New balance: $${user.balance.toFixed(2)}`);
-                    await emitBalanceUpdate(user._id);
-                }
             }
             console.log(`Transaction ${transaction._id} rejected.`);
-            return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard?success=Transaction rejected.`);
+            return res.redirect('/admin/dashboard?success=Transaction rejected.');
         }
 
     } catch (error) {
         console.error('Error processing admin transaction action:', error);
-        return res.redirect(`${req.protocol}://${req.get('host')}/admin/dashboard?error=An error occurred while processing the transaction.`);
+        return res.redirect('/admin/dashboard?error=An error occurred while processing the transaction.');
     }
 });
 
@@ -1522,8 +1445,8 @@ app.get('/admin/reset-plan/:email', isAdmin, async (req, res) => {
                 planEndDate: null,
                 dailyROI: 0,
                 initialInvestment: 0,
-                investments: [],
-                pendingStarterDeposit: 0,
+                // IMPORTANT: As per user request, if admin resets plan, balance should be reset too.
+                // This specific admin function is for a full user account reset.
                 balance: 0,
                 profilePicture: '',
                 lastProfitUpdate: null
@@ -1548,10 +1471,10 @@ app.get('/admin/logout', (req, res) => {
     req.session.destroy(err => {
         if (err) {
             console.error('Error destroying admin session:', err);
-            return res.redirect(`${req.protocol}://${req.get('host')}/admin/login?error=Error logging out.`);
+            return res.redirect('/admin/login?error=Error logging out.');
         }
         res.clearCookie('tradexa_session_id');
-        res.redirect(`${req.protocol}://${req.get('host')}/admin/login?success=You have been logged out from admin panel.`);
+        res.redirect('/admin/login?success=You have been logged out from admin panel.');
     });
 });
 
@@ -1559,7 +1482,10 @@ const PORT = process.env.PORT || 2100;
 
 async function startServer() {
     try {
-        const publicUrl = process.env.RAILWAY_STATIC_URL || process.env.RENDER_EXTERNAL_URL || process.env.BASE_URL || `http://localhost:${PORT}`;
+        // In a hosted environment, the hosting platform will provide the public URL.
+        // Render uses RENDER_EXTERNAL_URL, Railway uses RAILWAY_STATIC_URL, etc.
+        // You should set BASE_URL in your hosting environment variables if your platform doesn't provide a standard one.
+        const publicUrl = process.env.BASE_URL || process.env.RENDER_EXTERNAL_URL || process.env.RAILWAY_STATIC_URL || `http://localhost:${PORT}`;
 
         app.locals.baseUrl = publicUrl;
         console.log(`App Base URL set to: ${app.locals.baseUrl}`);

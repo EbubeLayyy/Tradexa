@@ -124,15 +124,15 @@
         </div>
     </div>
 
-    <!-- Modal for Withdrawal Failed Message -->
-    <div id="withdrawalModal" class="modal" style="display: none;"> <!-- Added inline style as a fallback -->
+    <!-- Modal for Withdrawal Messages -->
+    <div id="withdrawalModal" class="modal">
         <div class="modal-content">
             <span class="close-button">&times;</span>
-            <h3 style="font-size: 20px; font-weight: bold; color: #d32f2f; margin-bottom: 15px;">Withdrawal Failed!</h3>
-            <p style="color: #475569; margin-bottom: 15px;" id="modalMessage">Your withdrawal request could not be processed at this time.</p>
-            <p style="color: #475569;">Please contact support for assistance:</p>
-            <p style="color: #03598c; font-weight: 600; margin-top: 8px;"><a href="mailto:contact.tradexa@gmail.com">contact.tradexa@gmail.com</a></p> <!-- Corrected mailto link and text -->
-            <button class="btn-primary" onclick="closeModal()" style="margin-top: 25px;">Close</button>
+            <h3 id="modalTitle" class="modal-title-fail"></h3> <!-- Dynamic title -->
+            <p id="modalMessage" class="modal-message"></p> <!-- Dynamic message -->
+            <p class="modal-contact-info">Please contact support for assistance:</p>
+            <p class="modal-contact-info"><a href="mailto:contact.tradexa@gmail.com">contact.tradexa@gmail.com</a></p>
+            <button class="btn-primary" onclick="closeModal()">Close</button>
         </div>
     </div>
 
@@ -144,11 +144,12 @@
         const estimatedReceiveSpan = document.getElementById('estimatedReceive');
         const withdrawForm = document.getElementById('withdrawForm');
         const withdrawalModal = document.getElementById('withdrawalModal');
+        const modalTitle = document.getElementById('modalTitle'); // New: for dynamic title
         const modalMessage = document.getElementById('modalMessage');
         const closeButton = document.querySelector('.close-button');
 
-        const cryptoWallets = <%- JSON.stringify(cryptoWallets) %>; // Pass cryptoWallets from backend
-        const minWithdrawal = parseFloat('<%= minWithdrawal %>'); // Pass minWithdrawal from backend
+        const cryptoWallets = <%- JSON.stringify(cryptoWallets) %>;
+        const minWithdrawal = parseFloat('<%= minWithdrawal %>');
         const supportEmail = 'contact.tradexa@gmail.com'; // Corrected email address here
 
         // Function to update estimated receive amount
@@ -178,6 +179,26 @@
         // Initial calculation on page load
         updateEstimatedReceive();
 
+        // Modal functions
+        function showModal(title, message, isSuccess) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            // Ensure your dashboard.css defines styles for these classes
+            modalTitle.className = isSuccess ? 'modal-title-success' : 'modal-title-fail';
+            withdrawalModal.style.display = 'flex'; // Use flex to center
+        }
+
+        function closeModal() {
+            withdrawalModal.style.display = 'none';
+        }
+
+        closeButton.addEventListener('click', closeModal);
+        window.addEventListener('click', (event) => {
+            if (event.target === withdrawalModal) {
+                closeModal();
+            }
+        });
+
         // Handle form submission
         withdrawForm.addEventListener('submit', async (e) => {
             e.preventDefault(); // Prevent default form submission
@@ -186,30 +207,26 @@
             const currency = currencySelect.value;
             const walletAddress = walletAddressInput.value.trim();
 
+            // Client-side validation (mirroring backend for quick feedback)
             if (isNaN(amount) || amount <= 0) {
-                modalMessage.textContent = 'Please enter a valid withdrawal amount.';
-                showModal();
+                showModal('Withdrawal Failed!', 'Please enter a valid withdrawal amount.', false);
                 return;
             }
             if (amount < minWithdrawal) {
-                modalMessage.textContent = `Minimum withdrawal amount is $${minWithdrawal.toFixed(2)}.`;
-                showModal();
+                showModal('Withdrawal Failed!', `Minimum withdrawal amount is $${minWithdrawal.toFixed(2)}.`, false);
                 return;
             }
             // Client-side check against current balance. Note: user.balance is a string from EJS, convert to float.
             if (amount > parseFloat('<%= user.balance.toFixed(2) %>')) {
-                modalMessage.textContent = 'Insufficient balance for this withdrawal.';
-                showModal();
+                showModal('Withdrawal Failed!', 'Insufficient balance for this withdrawal.', false);
                 return;
             }
             if (!currency) {
-                modalMessage.textContent = 'Please select a cryptocurrency.';
-                showModal();
+                showModal('Withdrawal Failed!', 'Please select a cryptocurrency.', false);
                 return;
             }
             if (!walletAddress) {
-                modalMessage.textContent = `Please enter your ${currency.replace(/_/g, ' ')} wallet address.`;
-                showModal();
+                showModal('Withdrawal Failed!', `Please enter your ${currency.replace(/_/g, ' ')} wallet address.`, false);
                 return;
             }
 
@@ -224,52 +241,32 @@
 
                 const data = await response.json();
 
-                if (!data.success) {
-                    modalMessage.innerHTML = `${data.message || 'Withdrawal failed. Please try again.'}`; // Use supportEmail variable
-                    showModal();
+                if (!response.ok) { // Check if HTTP status code is not 2xx
+                    showModal('Withdrawal Failed!', data.message || 'An unexpected error occurred.', false);
                 } else {
-                    // This block will not be reached with current server-side logic
-                    // In a real scenario, you'd show a success message and potentially clear the form
-                    modalMessage.textContent = data.message;
-                    showModal();
+                    // Backend now sends success: true with a message for valid requests
+                    showModal('Withdrawal Request Submitted!', data.message, true);
                     withdrawForm.reset(); // Clear form on success
                     updateEstimatedReceive(); // Reset calculation
+                    // As per new logic, the balance is untouched by withdrawal requests.
                 }
             } catch (error) {
-               console.error('Error during withdrawal request:', error);
-               modalMessage.innerHTML = `An unexpected error occurred. Please contact support at <a href="mailto:${supportEmail}" style="color: #03598c; font-weight: 600;">${supportEmail}</a>`; // Use supportEmail variable
-               showModal();
-            }
-        });
-
-        // Modal functions
-        function showModal() {
-            withdrawalModal.style.display = 'flex'; // Use flex to center
-        }
-
-        function closeModal() {
-            withdrawalModal.style.display = 'none';
-        }
-
-        closeButton.addEventListener('click', closeModal);
-        window.addEventListener('click', (event) => {
-            if (event.target === withdrawalModal) {
-                closeModal();
+                console.error('Error during withdrawal request:', error);
+                showModal('Withdrawal Failed!', `An unexpected error occurred. Please contact support at ${supportEmail}`, false);
             }
         });
     </script>
-         <!-- Smartsupp Live Chat script -->
-<!-- Smartsupp Live Chat script -->
-<script type="text/javascript">
-var _smartsupp = _smartsupp || {};
-_smartsupp.key = 'ba6a5df2d0615c8a2ce3a85521dc1af4083b028c';
-window.smartsupp||(function(d) {
-  var s,c,o=smartsupp=function(){ o._.push(arguments)};o._=[];
-  s=d.getElementsByTagName('script')[0];c=d.createElement('script');
-  c.type='text/javascript';c.charset='utf-8';c.async=true;
-  c.src='https://www.smartsuppchat.com/loader.js?';s.parentNode.insertBefore(c,s);
-})(document);
-</script>
-<noscript> Powered by <a href=“https://www.smartsupp.com” target=“_blank”>Smartsupp</a></noscript>
+    <!-- Smartsupp Live Chat script -->
+    <script type="text/javascript">
+    var _smartsupp = _smartsupp || {};
+    _smartsupp.key = 'ba6a5df2d0615c8a2ce3a85521dc1af4083b028c';
+    window.smartsupp||(function(d) {
+      var s,c,o=smartsupp=function(){ o._.push(arguments)};o._=[];
+      s=d.getElementsByTagName('script')[0];c=d.createElement('script');
+      c.type='text/javascript';c.charset='utf-8';c.async=true;
+      c.src='https://www.smartsuppchat.com/loader.js?';s.parentNode.insertBefore(c,s);
+    })(document);
+    </script>
+    <noscript> Powered by <a href="https://www.smartsupp.com" target="_blank">Smartsupp</a></noscript>
 </body>
 </html>

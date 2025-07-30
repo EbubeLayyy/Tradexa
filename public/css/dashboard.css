@@ -897,6 +897,109 @@ body {
     text-decoration: none;
     cursor: pointer;
 }
+/* Example styles for dashboard.css (if they don't exist already) */
+
+/* Modal overlay */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1000; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+    justify-content: center; /* Center horizontally */
+    align-items: center; /* Center vertically */
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Modal content box */
+.modal-content {
+    background-color: #fefefe;
+    margin: auto;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    position: relative;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    animation: fadeIn 0.3s ease-out; /* Optional: for smooth appearance */
+}
+
+/* Keyframe for fade-in animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Close button */
+.close-button {
+    color: #aaa;
+    position: absolute;
+    top: 15px;
+    right: 25px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: #333;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Dynamic modal titles */
+.modal-title-fail {
+    font-size: 24px;
+    font-weight: bold;
+    color: #d32f2f; /* Red for failure */
+    margin-bottom: 15px;
+}
+
+.modal-title-success {
+    font-size: 24px;
+    font-weight: bold;
+    color: #28a745; /* Green for success */
+    margin-bottom: 15px;
+}
+
+/* Modal message and contact info */
+.modal-message {
+    color: #475569;
+    margin-bottom: 15px;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+.modal-contact-info {
+    color: #475569;
+    margin-top: 15px;
+    font-size: 14px;
+}
+
+.modal-contact-info a {
+    color: #03598c;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.modal-contact-info a:hover {
+    text-decoration: underline;
+}
+
+.modal .btn-primary {
+    margin-top: 25px;
+    padding: 10px 25px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+}
 /* --- END: Modal Styles --- */
 /* Responsive adjustments (combined and refined) */
 @media (max-width: 768px) {
