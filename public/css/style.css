@@ -684,6 +684,19 @@ body {
   transition: color 0.3s ease;
 }
 
+.footer-column ul li span {
+  color: #d1d5db;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+
+.footer-column ul li span:hover {
+  color: #ffffff;
+}
+
+
+
 .footer-column ul li a:hover {
   color: #ffffff;
 }

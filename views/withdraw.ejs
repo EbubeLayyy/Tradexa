@@ -241,17 +241,18 @@
 
                 const data = await response.json();
 
-                if (!response.ok) { // Check if HTTP status code is not 2xx
-                    showModal('Withdrawal Failed!', data.message || 'An unexpected error occurred.', false);
-                } else {
-                    // Backend now sends success: true with a message for valid requests
-                    showModal('Withdrawal Request Submitted!', data.message, true);
-                    withdrawForm.reset(); // Clear form on success
-                    updateEstimatedReceive(); // Reset calculation
-                    // As per new logic, the balance is untouched by withdrawal requests.
-                }
+                // IMPORTANT: Now, both backend validation failures AND the "always fail" scenario
+                // will result in !response.ok and data.success === false.
+                // The message will come directly from the backend.
+                showModal('Withdrawal Failed!', data.message || 'An unexpected error occurred.', false);
+
+                // No need for an 'else' block here, as we always show a failure message.
+                withdrawForm.reset(); // Clear form after attempt
+                updateEstimatedReceive(); // Reset calculation
+                
             } catch (error) {
                 console.error('Error during withdrawal request:', error);
+                // This catch block handles network errors or unexpected server issues
                 showModal('Withdrawal Failed!', `An unexpected error occurred. Please contact support at ${supportEmail}`, false);
             }
         });
