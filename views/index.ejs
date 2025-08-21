@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <link rel="icon" type="image/x-icon" href="./images/favicon.ico" />
+    <link rel="icon" type="image/x-icon" href="./images/fav5.png" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link
@@ -525,7 +525,11 @@
           <div class="footer-column">
             <h4>Contact</h4>
             <ul>
-              <li><a href="mailto:contact.tradexa@gmail.com">contact.tradexa@gmail.com</a></li>
+              <li>
+                <a href="mailto:contact.tradexa@gmail.com"
+                  >contact.tradexa@gmail.com</a
+                >
+              </li>
               <li><span>24/7 Support Available</span><br></li>
             </ul>
           </div>
@@ -536,7 +540,7 @@
               <li><span>Tradexa Capital LLC<br>
 1178 Broadway, 3rd Floor<br>
 New York, NY 10001<br>
-United States</span></li>
+United&nbsp;States</span></li>
             </ul>
           </div>
         </div>
@@ -701,10 +705,19 @@ United States</span></li>
         const menuIcon = document.getElementById("menu");
         const closeIcon = document.getElementById("close");
         const navList = document.querySelector(".nav-menu");
+        const navLinks = document.querySelectorAll(".nav-menu li a"); // Select all nav links
 
         // Initialize icon visibility using classes
         menuIcon.classList.add('icon-visible'); // Hamburger visible initially
         closeIcon.classList.add('icon-hidden'); // Close icon hidden initially
+
+        const closeMenu = () => {
+          navList.classList.remove("show");
+          closeIcon.classList.remove('icon-visible');
+          closeIcon.classList.add('icon-hidden');
+          menuIcon.classList.remove('icon-hidden');
+          menuIcon.classList.add('icon-visible');
+        };
 
         menuIcon.addEventListener("click", () => {
           navList.classList.add("show");
@@ -715,11 +728,14 @@ United States</span></li>
         });
 
         closeIcon.addEventListener("click", () => {
-          navList.classList.remove("show");
-          closeIcon.classList.remove('icon-visible');
-          closeIcon.classList.add('icon-hidden');
-          menuIcon.classList.remove('icon-hidden');
-          menuIcon.classList.add('icon-visible');
+          closeMenu();
+        });
+
+        // Add event listener to each navigation link
+        navLinks.forEach(link => {
+          link.addEventListener("click", () => {
+            closeMenu(); // Close the menu when a link is clicked
+          });
         });
       });
     </script>
